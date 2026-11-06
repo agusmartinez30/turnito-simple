@@ -217,3 +217,5 @@ Migraciones: `20261106163320_add_payment_proofs_bank_data` (tabla y datos bancar
 - Otros formatos (WebP, HEIC, GIF).
 - Notificar al jugador de la aprobación o el rechazo (ve el estado al reabrir el link).
 - Vencimiento del link o token firmado.
+
+- Tiempo real: el admin recibe `payment.changed` por Socket.IO cuando se sube un comprobante; ver [`24-realtime-events.md`](./24-realtime-events.md).

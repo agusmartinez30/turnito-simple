@@ -243,3 +243,5 @@ Setup como `admin-bookings.e2e-spec.ts`; reserva confirmada de `price 20000`.
 - Arqueo / cierre de caja (efectivo contado, diferencias), exportar CSV.
 - Reembolsos, edición de pagos, pago online, señas con vencimiento.
 - Asociar un pago a un jugador con cuenta.
+
+- Tiempo real: cada alta/anulación de pago y cada aprobación/rechazo de comprobante emite `payment.changed` por Socket.IO a los admins del complejo; ver [`24-realtime-events.md`](./24-realtime-events.md).

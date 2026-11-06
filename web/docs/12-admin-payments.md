@@ -341,3 +341,5 @@ Feature: `src/features/admin-payments/{api.ts, hooks.ts, schemas.ts, components/
 - Editar un pago (se anula y se carga otro).
 - Pago online, Mercado Pago, links de pago, señas con vencimiento.
 - Asociar cada pago a un jugador con cuenta.
+
+- Tiempo real: esta pantalla se refresca por Socket.IO además del polling de 15 s; ver [`24-realtime.md`](./24-realtime.md).
