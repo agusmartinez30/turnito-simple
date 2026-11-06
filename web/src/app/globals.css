@@ -1,0 +1,356 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-active: var(--sidebar-active);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-muted-foreground: var(--sidebar-muted-foreground);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-destructive-subtle-foreground: var(--destructive-subtle-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-success-subtle-foreground: var(--success-subtle-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-warning-subtle-foreground: var(--warning-subtle-foreground);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-strong: var(--highlight-strong);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/*
+ * Marca del complejo: índigo #1800AC + lima #ABEA5C.
+ *
+ * Estos valores son el DEFAULT de Clubix. Un complejo que eligió sus colores en
+ * /admin/settings los pisa con la hoja que genera `src/lib/theme.ts` (docs/19-branding.md),
+ * que respeta las reglas de abajo: de hecho este archivo es la salida de ese generador para
+ * el par #1800AC / #ABEA5C. Si se agrega un token de marca acá, hay que agregarlo también al
+ * generador, o ese token se queda en índigo para todos los complejos con color propio.
+ *
+ * - `--primary` es el índigo. `--highlight` es el lima de acento (CTA, realces): va en un
+ *   token propio y NO en `--secondary` ni en `--accent`, porque en shadcn esos dos son
+ *   superficies neutras (el fondo de los botones y badges secundarios, y el hover de menús
+ *   e items); pintarlas de lima encendería cada dropdown de la app.
+ * - El lima es un color de RELLENO, no de tinta: `--highlight` (#ABEA5C exacto) solo se usa
+ *   como fondo con tinta oscura encima; sobre blanco da 1.43:1 y no se ve. Para marcas y
+ *   filetes sobre superficies claras está `--highlight-strong`, el mismo matiz oscurecido
+ *   hasta pasar 3:1. En oscuro se invierte: `--highlight-strong` es el lima claro.
+ * - Todo `*-foreground` sobre lima o sobre ámbar tiene que ser tinta oscura, nunca blanco:
+ *   blanco sobre #ABEA5C da 1.43:1 y sobre ámbar 2.15:1 (ambos fallan AA).
+ * - El neutro está teñido con el matiz del índigo (268.6) y muy poco croma, para que los
+ *   grises no peleen con la marca.
+ * - La navegación del panel (sidebar lg+ y drawer lateral mobile) es la única superficie
+ *   pintada de índigo: los tokens `--sidebar-*` la definen entera (fondo, tinta, hover,
+ *   activo, foco) para que el contenido siga siendo claro y neutro. El ítem activo se marca
+ *   con el lima (`--highlight`, 8.95:1 sobre el índigo), que ahí sí es tinta porque el fondo
+ *   es oscuro; el relleno del activo solo lo acompaña. El anillo de foco dentro de la
+ *   navegación es lima y no `--ring`: el índigo sobre índigo no se vería.
+ * - `--input` se separa de `--border` para que el borde de un control llegue a 3:1
+ *   contra la tarjeta (WCAG 1.4.11); `--border`, que solo separa, puede ser más suave.
+ * - Los estados de negocio viven en tríos `X` / `X-foreground` / `X-subtle` /
+ *   `X-subtle-foreground`: sólido para badges llenos, `subtle` para fondos de aviso.
+ *   `--destructive` hace de color de peligro (impago, turno vencido) además de error de form.
+ */
+:root {
+  --background: oklch(0.981 0.006 268.6);
+  --foreground: oklch(0.2 0.04 268.6);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.04 268.6);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.04 268.6);
+  --primary: oklch(0.344 0.228 268.6);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.96 0.011 268.6);
+  --secondary-foreground: oklch(0.315 0.05 268.6);
+  --muted: oklch(0.96 0.011 268.6);
+  --muted-foreground: oklch(0.49 0.048 268.6);
+  --accent: oklch(0.935 0.019 268.6);
+  --accent-foreground: oklch(0.315 0.05 268.6);
+  --highlight: oklch(0.866 0.184 129.8);
+  --highlight-foreground: oklch(0.2 0.04 268.6);
+  --highlight-strong: oklch(0.6 0.16 129.8);
+  --destructive: oklch(0.586 0.222 17.6);
+  --destructive-foreground: oklch(1 0 0);
+  --destructive-subtle: oklch(0.941 0.03 12.6);
+  --destructive-subtle-foreground: oklch(0.455 0.171 13.7);
+  --success: oklch(0.527 0.137 150.1);
+  --success-foreground: oklch(1 0 0);
+  --success-subtle: oklch(0.962 0.043 156.7);
+  --success-subtle-foreground: oklch(0.448 0.108 151.3);
+  --warning: oklch(0.769 0.165 70.1);
+  --warning-foreground: oklch(0.2 0.04 268.6);
+  --warning-subtle: oklch(0.962 0.058 95.6);
+  --warning-subtle-foreground: oklch(0.473 0.125 46.2);
+  --border: oklch(0.925 0.016 268.6);
+  --input: oklch(0.63 0.035 268.6);
+  --ring: oklch(0.344 0.228 268.6);
+  --chart-1: oklch(0.344 0.228 268.6);
+  --chart-2: oklch(0.6 0.16 129.8);
+  --chart-3: oklch(0.6 0.2 268.6);
+  --chart-4: oklch(0.769 0.165 70.1);
+  --chart-5: oklch(0.586 0.222 17.6);
+  --radius: 0.625rem;
+  --sidebar: oklch(0.344 0.228 268.6);
+  --sidebar-foreground: oklch(0.985 0.01 268.6);
+  --sidebar-muted-foreground: oklch(0.84 0.06 268.6);
+  --sidebar-primary: var(--highlight);
+  --sidebar-primary-foreground: var(--highlight-foreground);
+  --sidebar-accent: oklch(0.39 0.22 268.6);
+  --sidebar-accent-foreground: oklch(0.985 0.01 268.6);
+  --sidebar-active: oklch(0.495 0.185 268.6);
+  --sidebar-border: oklch(1 0 0 / 14%);
+  --sidebar-ring: var(--highlight);
+}
+
+/*
+ * En oscuro el índigo #1800AC queda demasiado profundo para leerse sobre el fondo, así que
+ * `--primary` sube a la misma familia aclarada (con el croma máximo que admite sRGB a esa
+ * luminosidad); el índigo original queda para el modo claro.
+ */
+.dark {
+  --background: oklch(0.175 0.03 268.6);
+  --foreground: oklch(0.972 0.01 268.6);
+  --card: oklch(0.228 0.038 268.6);
+  --card-foreground: oklch(0.972 0.01 268.6);
+  --popover: oklch(0.228 0.038 268.6);
+  --popover-foreground: oklch(0.972 0.01 268.6);
+  --primary: oklch(0.72 0.145 268.6);
+  --primary-foreground: oklch(0.175 0.03 268.6);
+  --secondary: oklch(0.278 0.038 268.6);
+  --secondary-foreground: oklch(0.972 0.01 268.6);
+  --muted: oklch(0.278 0.038 268.6);
+  --muted-foreground: oklch(0.712 0.038 268.6);
+  --accent: oklch(0.32 0.045 268.6);
+  --accent-foreground: oklch(0.972 0.01 268.6);
+  --highlight: oklch(0.905 0.165 129.8);
+  --highlight-foreground: oklch(0.175 0.03 268.6);
+  --highlight-strong: oklch(0.905 0.165 129.8);
+  --destructive: oklch(0.719 0.169 13.4);
+  --destructive-foreground: oklch(0.175 0.03 268.6);
+  --destructive-subtle: oklch(0.514 0.198 16.9 / 22%);
+  --destructive-subtle-foreground: oklch(0.719 0.169 13.4);
+  --success: oklch(0.8 0.182 151.7);
+  --success-foreground: oklch(0.175 0.03 268.6);
+  --success-subtle: oklch(0.527 0.137 150.1 / 22%);
+  --success-subtle-foreground: oklch(0.8 0.182 151.7);
+  --warning: oklch(0.837 0.164 84.4);
+  --warning-foreground: oklch(0.175 0.03 268.6);
+  --warning-subtle: oklch(0.555 0.146 49 / 26%);
+  --warning-subtle-foreground: oklch(0.837 0.164 84.4);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 35%);
+  --ring: oklch(0.72 0.145 268.6);
+  --chart-1: oklch(0.72 0.145 268.6);
+  --chart-2: oklch(0.866 0.184 129.8);
+  --chart-3: oklch(0.66 0.18 268.6);
+  --chart-4: oklch(0.837 0.164 84.4);
+  --chart-5: oklch(0.719 0.169 13.4);
+  --sidebar: oklch(0.29 0.125 268.6);
+  --sidebar-foreground: oklch(0.972 0.01 268.6);
+  --sidebar-muted-foreground: oklch(0.79 0.05 268.6);
+  --sidebar-primary: var(--highlight);
+  --sidebar-primary-foreground: var(--highlight-foreground);
+  --sidebar-accent: oklch(0.345 0.13 268.6);
+  --sidebar-accent-foreground: oklch(0.972 0.01 268.6);
+  --sidebar-active: oklch(0.435 0.14 268.6);
+  --sidebar-border: oklch(1 0 0 / 12%);
+  --sidebar-ring: var(--highlight-strong);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
+/*
+ * Superficie pública /app (docs/10-public-request.md). Se scopea con `body:has(...)` y no con
+ * un wrapper para que los Dialog/Sheet, que se portalean a <body>, hereden los mismos tokens.
+ *
+ * El canvas es el índigo de la marca (#1800AC) y la tinta de acento sobre él es el lima:
+ * `--primary` acá NO es el índigo (sería índigo sobre índigo) sino `--highlight`, así que el
+ * riel de pasos, el chip del día elegido, la marca del header y los datos resaltados salen
+ * lima sin tocar un solo componente. El texto corrido es blanco: una pantalla entera de lima
+ * pasa contraste (8.95:1) pero vibra y aplana la jerarquía.
+ *
+ * Las tarjetas (tiles de deporte, horarios, ticket) siguen siendo blancas: son la zona de
+ * lectura densa y de decisión, y el lima sobre blanco da 1.43:1. Por eso abajo hay dos
+ * sub-scopes que devuelven la tinta oscura adentro de cada superficie clara — en esta
+ * superficie "fondo claro" y "tinta oscura" son la misma decisión.
+ *
+ * Los estados (success/warning/destructive) se heredan de `:root` a propósito, para que un
+ * mismo estado se lea igual en el mostrador y en el teléfono del cliente.
+ */
+body:has([data-surface='open']) {
+  --background: oklch(0.344 0.228 268.6);
+  --foreground: oklch(0.985 0.01 268.6);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.225 0.045 268.6);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.225 0.045 268.6);
+  --primary: var(--highlight);
+  --primary-foreground: var(--highlight-foreground);
+  --secondary: oklch(0.41 0.21 268.6);
+  --secondary-foreground: oklch(0.985 0.01 268.6);
+  --muted: oklch(0.41 0.21 268.6);
+  --muted-foreground: oklch(0.84 0.06 268.6);
+  --accent: oklch(0.455 0.195 268.6);
+  --accent-foreground: oklch(0.985 0.01 268.6);
+  --border: oklch(1 0 0 / 22%);
+  --input: oklch(1 0 0 / 45%);
+  --ring: var(--highlight);
+  --radius: 0.75rem;
+}
+
+/*
+ * Tarjeta clara sobre el canvas índigo: recupera la tinta oscura, los grises y el índigo como
+ * `--primary` (los precios y el check van en índigo, no en lima). Se engancha a la utilidad
+ * `bg-card` porque pintar de blanco y volver a la tinta oscura es la misma decisión; para una
+ * superficie clara que no use esa clase está `[data-surface='card']`.
+ *
+ * `--background` y `--ring` NO se tocan: el anillo de foco y el recorte del ticket caen fuera
+ * de la tarjeta, sobre el índigo, y ahí el lima es lo que se ve.
+ *
+ * Va todo dentro de `:where(...)` (especificidad 0) por el `color`: sin él la tarjeta se
+ * pinta de blanco pero el texto sigue heredando el blanco del `body` y desaparece; con
+ * especificidad, en cambio, le ganaría a un `text-destructive` puesto en la misma tarjeta.
+ */
+:where(body:has([data-surface='open']) :is(.bg-card, [data-surface='card'])) {
+  color: var(--card-foreground);
+  --foreground: oklch(0.225 0.045 268.6);
+  --muted-foreground: oklch(0.47 0.05 268.6);
+  --primary: oklch(0.344 0.228 268.6);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.955 0.016 268.6);
+  --secondary-foreground: oklch(0.315 0.05 268.6);
+  --muted: oklch(0.955 0.016 268.6);
+  --accent: oklch(0.925 0.035 268.6);
+  --accent-foreground: oklch(0.33 0.1 268.6);
+  --border: oklch(0.9 0.02 268.6);
+  --input: oklch(0.63 0.035 268.6);
+}
+
+/*
+ * Diálogos y menús: además de la tinta, restauran `--background` (el botón "outline" y los
+ * separadores de campo lo usan como su propio relleno) y el anillo índigo, que acá sí cae
+ * adentro de una superficie blanca.
+ */
+:where(body:has([data-surface='open']) .bg-popover) {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.225 0.045 268.6);
+  --muted-foreground: oklch(0.47 0.05 268.6);
+  --primary: oklch(0.344 0.228 268.6);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.955 0.016 268.6);
+  --secondary-foreground: oklch(0.315 0.05 268.6);
+  --muted: oklch(0.955 0.016 268.6);
+  --accent: oklch(0.925 0.035 268.6);
+  --accent-foreground: oklch(0.33 0.1 268.6);
+  --border: oklch(0.9 0.02 268.6);
+  --input: oklch(0.63 0.035 268.6);
+  --ring: oklch(0.344 0.228 268.6);
+}
+
+/*
+ * En oscuro el canvas sigue siendo índigo, pero hundido: el #1800AC pleno brilla demasiado
+ * cuando todo lo demás se apaga. Las tarjetas suben a un azul grisado para despegarse.
+ */
+.dark body:has([data-surface='open']) {
+  --background: oklch(0.245 0.11 268.6);
+  --foreground: oklch(0.96 0.012 268.6);
+  --card: oklch(0.355 0.05 268.6);
+  --card-foreground: oklch(0.96 0.012 268.6);
+  --popover: oklch(0.355 0.05 268.6);
+  --popover-foreground: oklch(0.96 0.012 268.6);
+  --primary: var(--highlight);
+  --primary-foreground: var(--highlight-foreground);
+  --secondary: oklch(0.33 0.115 268.6);
+  --secondary-foreground: oklch(0.96 0.012 268.6);
+  --muted: oklch(0.33 0.115 268.6);
+  --muted-foreground: oklch(0.79 0.05 268.6);
+  --accent: oklch(0.375 0.12 268.6);
+  --accent-foreground: oklch(0.96 0.012 268.6);
+  --border: oklch(1 0 0 / 16%);
+  --input: oklch(1 0 0 / 35%);
+  --ring: var(--highlight);
+}
+
+:where(
+  .dark
+    body:has([data-surface='open'])
+    :is(.bg-card, [data-surface='card'], .bg-popover)
+) {
+  color: var(--card-foreground);
+  --foreground: oklch(0.96 0.012 268.6);
+  --muted-foreground: oklch(0.72 0.04 268.6);
+  --primary: oklch(0.72 0.145 268.6);
+  --primary-foreground: oklch(0.175 0.03 268.6);
+  --secondary: oklch(0.292 0.04 268.6);
+  --secondary-foreground: oklch(0.96 0.012 268.6);
+  --muted: oklch(0.292 0.04 268.6);
+  --accent: oklch(0.34 0.065 268.6);
+  --accent-foreground: oklch(0.9 0.04 268.6);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 35%);
+}
+
+:where(.dark body:has([data-surface='open']) .bg-popover) {
+  --background: oklch(0.355 0.05 268.6);
+  --ring: oklch(0.72 0.145 268.6);
+}
+
+@utility font-display {
+  font-family: var(--font-display, var(--font-sans));
+  font-variation-settings: 'opsz' 96;
+}

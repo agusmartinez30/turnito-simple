@@ -13,9 +13,9 @@ Delegated direct, single writer. Trigger evidence: 2+ non-trivial files, broad m
 - [x] T1 Scaffold + copy api (robocopy excluding node_modules/dist/.env)
 - [x] T2 Trim api + prisma schema + fresh `init` migration with hand-appended SQL constraints
 - [x] T3 API build, lint, unit and e2e green
-- [ ] T4 Copy + trim web
-- [ ] T5 Web typecheck, lint, build green
-- [ ] T6 README
+- [x] T4 Copy + trim web
+- [x] T5 Web typecheck, lint, build green
+- [x] T6 README
 
 ## Decisions
 - Prisma: models Complex, Court, User, Customer, Booking, Payment, PaymentProof; BookingSource = PLAYER | ADMIN | PUBLIC.
@@ -32,3 +32,11 @@ Delegated direct, single writer. Trigger evidence: 2+ non-trivial files, broad m
 
 ## Progress / evidence
 - API: `pnpm build` ok, `pnpm lint` clean, `pnpm test` 26 suites / 250 tests pass, `pnpm test:e2e` 13 suites / 187 tests pass.
+- Web: `pnpm exec tsc --noEmit` clean, `pnpm lint` clean, `pnpm build` ok (13 routes). recharts removed.
+- Web decisions: creating a booking lived in the (cut) agenda, so a new `NewBookingDialog` (court + day + start time
+  computed client-side from the court grid, customer picker, price, note) was added to the bookings list. The API
+  stays the validator of the slot. Trimmed `public-request` feature keeps only the public complex fetch, hooks and
+  OpenShell (needed by the public payment page).
+- Smoke test: built API served login, bookings list and the public complex endpoint on port 3011.
+- Not done: browser-level check of the web UI (no Playwright run), so the new booking dialog is verified by
+  typecheck/lint/build only.
