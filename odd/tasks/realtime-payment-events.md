@@ -18,7 +18,7 @@ Admin screens (booking detail, payments ledger) update instantly when a payer su
 
 ## Tasks
 - [x] T1 API: gateway (Socket.IO) + auth + complex rooms + event emission on proof created, proof approved/rejected, payment registered/voided; unit + e2e tests (socket.io-client). Route: delegated.
-- [ ] T2 Web admin: socket provider in the admin shell, subscribe and invalidate queries (admin booking detail, payment proofs, payments ledger, bookings list); fallback polling stays. Route: delegated.
+- [x] T2 Web admin: socket provider in the admin shell, subscribe and invalidate queries (admin booking detail, payment proofs, payments ledger, bookings list); fallback polling stays. Route: delegated.
 - [ ] T3 Docs (api + web).
 
 ## Evidence
@@ -26,4 +26,4 @@ Admin screens (booking detail, payments ledger) update instantly when a payer su
 - Current refresh: refetchInterval 15 s on useAdminBooking, usePaymentProofs, usePaymentsLedger (commit f8d8fdd).
 
 ## Next step
-Delegate T2. T1 evidence: jest 277, e2e 204 (realtime e2e 9), tsc/eslint/prettier clean. Exception: no recorded RED (impl written before tests). Namespace /admin, event `payment.changed` {complexId, bookingId, kind}; token via handshake.auth.token or Bearer header.
+Delegate T3 (docs). T2 evidence: tsc/eslint/prettier/build clean; token via getAccessToken(), socket URL = API origin + /admin; never exercised against a running API in a browser. T1 evidence: jest 277, e2e 204 (realtime e2e 9), tsc/eslint/prettier clean. Exception: no recorded RED (impl written before tests). Namespace /admin, event `payment.changed` {complexId, bookingId, kind}; token via handshake.auth.token or Bearer header.
