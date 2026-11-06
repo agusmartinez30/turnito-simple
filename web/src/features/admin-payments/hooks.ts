@@ -30,6 +30,8 @@ export function usePaymentsLedger(filters: PaymentLedgerFilters) {
     queryKey: adminPaymentKeys.list(filters),
     queryFn: () => listPayments(filters),
     staleTime: 30_000,
+    // Pending proofs show up here too; keep the ledger fresh while it's open.
+    refetchInterval: 15_000,
   });
 }
 
@@ -86,6 +88,8 @@ export function usePaymentProofs(bookingId: string) {
     queryKey: paymentProofKeys.list(bookingId),
     queryFn: () => listPaymentProofs(bookingId),
     staleTime: 30_000,
+    // Players upload proofs from their own phones: pick them up without a manual reload.
+    refetchInterval: 15_000,
   });
 }
 

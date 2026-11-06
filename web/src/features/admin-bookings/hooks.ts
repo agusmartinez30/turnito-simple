@@ -36,6 +36,8 @@ export function useAdminBooking(id: string) {
     queryKey: adminBookingKeys.detail(id),
     queryFn: () => getAdminBooking(id),
     staleTime: 30_000,
+    // Players upload proofs from their own phones: pick them up without a manual reload.
+    refetchInterval: 15_000,
   });
 }
 
