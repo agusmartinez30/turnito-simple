@@ -6,11 +6,36 @@
 
 Que el cliente de una reserva abra un link, vea **los datos bancarios del complejo y cuánto falta pagar**, transfiera y **suba el comprobante en PDF**. El comprobante queda en revisión; el admin lo aprueba (se registra el pago) o lo rechaza con motivo, desde el detalle de la reserva o desde el listado unificado de `/admin/payments` (botones Aceptar / Rechazar / Ver comprobante; ver `12-admin-payments.md`). Sin cuenta: el UUID de la reserva es la llave.
 
+## Flujo con QR
+
+```
+admin imprime el QR (Ajustes → "QR de pago")  →  jugador escanea  →  /app/[slug]  (lista de turnos de hoy y ayer)
+  → toca su turno  →  /app/[slug]/pagar/[id]  (resumen + datos bancarios)  →  sube el comprobante PDF  →  PaymentProof PENDING
+  → admin aprueba (se registra el Payment) o rechaza con motivo
+```
+
+Los turnos `PENDING` (solicitudes sin confirmar) **no** aparecen en la lista, pero siguen siendo pagables entrando directo al link `/app/[slug]/pagar/[id]`. Contraparte de la lista: `GET /public/c/:slug/bookings` ([`api/docs/23-public-payment-link.md`](../../api/docs/23-public-payment-link.md)).
+
 ## Rutas / pantallas
 
 | Ruta | Layout | Auth | Descripción |
 |---|---|---|---|
+| `/app/[slug]` | `(open)` | **Ninguna** | Landing del QR: lista de turnos recientes para elegir el propio |
 | `/app/[slug]/pagar/[id]` | `(open)` | **Ninguna** | Estado del pago de la reserva `id`: resumen, datos bancarios y subida del comprobante |
+
+### Landing del QR — `/app/[slug]`
+
+`src/app/(open)/app/[slug]/page.tsx` es fino y monta `PublicBookingsView` (`src/features/public-bookings/{api,hooks,schemas}.ts` + `components/PublicBookingsView.tsx`). Query `['public', slug, 'bookings']`, `staleTime: 0`, `retry: false`.
+
+- Título "Pagar tu turno". Los turnos se agrupan por día en el timezone del complejo bajo "Hoy" / "Ayer" (`groupByDay`).
+- Cada turno es una card (`data-testid="public-booking-card"`) que linkea a `/app/[slug]/pagar/[id]`: horario, cancha y deporte, y el **nombre completo** de quien reservó ("Reserva sin nombre" si no hay cliente). No se muestran teléfono ni otros datos.
+- Badge de pago: `Pagado` (la card se atenúa) · `Comprobante en revisión` (`hasPendingProof`) · `Pago parcial` · `Sin pagar`.
+- Lista vacía (`data-testid="public-bookings-empty"`): "No hay turnos recientes. Si jugaste hoy o ayer y no ves tu turno, consultá en el complejo."
+- Slug inexistente (`NOT_FOUND` del complejo o de la lista): pantalla "Complejo no encontrado". Otro error: `ErrorAlert` con "Reintentar".
+
+### QR en Ajustes (admin) — `PaymentQrCard`
+
+`src/features/admin-settings/components/PaymentQrCard.tsx`, montada en `SettingsPage`. Genera con `qrcode.react` (`QRCodeSVG`) el QR de `${origin}/app/${slug}` (el origin se lee en el cliente, igual que `PaymentLinkCard`). Acciones: **Copiar** el link, **Descargar** el QR como SVG (`qr-pago-<slug>.svg`) e **Imprimir** (`window.print()`; con utilidades `print:` se oculta todo salvo `#payment-qr-print`: nombre del complejo, QR grande y "Escaneá, elegí tu turno y pagá"). Si faltan CBU, alias o titular, la descripción avisa que primero hay que cargar los datos bancarios.
 
 `page.tsx` es fino y monta `PublicPaymentView`. El link lo arma el admin desde el detalle de la reserva (`PaymentLinkCard`, [`12-admin-payments.md`](./12-admin-payments.md)). Código: `src/features/public-payment/{api,hooks,schemas}.ts` + `components/PublicPaymentView.tsx`.
 
@@ -90,9 +115,13 @@ El descuento es **visual**: el pago real se registra cuando el admin aprueba. Va
 
 ## Verificación
 
-**No se ejercitó en un navegador durante la implementación** (ni la versión con nombre/monto): solo hubo `pnpm typecheck` y eslint (limpios). Los estados y errores de arriba salen de leer el código, no de haberlos visto andar. La web no tiene test runner.
+**No se ejercitó en un navegador durante la implementación** (ni la versión con nombre/monto, ni la landing del QR, ni la `PaymentQrCard` con su descarga e impresión): solo hubo `pnpm typecheck`, eslint y `next build` (limpios). Los estados y errores de arriba salen de leer el código, no de haberlos visto andar. La web no tiene test runner.
 
 ## Criterios de aceptación
+
+- [ ] `/app/[slug]` lista los turnos confirmados de hoy y ayer agrupados por día, con nombre completo y badge de pago; tocar uno lleva a `pagar/[id]`.
+- [ ] Un slug inexistente muestra "Complejo no encontrado"; sin turnos, el mensaje de lista vacía.
+- [ ] En Ajustes, la card "QR de pago" muestra el QR de `/app/<slug>`; copiar, descargar e imprimir funcionan (al imprimir solo sale el QR).
 
 - [ ] Reserva con saldo: se ven resumen con "Saldo a pagar", datos bancarios con copiar y el formulario; "Confirmar pago" queda deshabilitado hasta completar nombre, monto válido (≤ saldo) y PDF.
 - [ ] Un envío exitoso muestra el monto enviado y el saldo actualizado, y permite "Enviar otro comprobante" con el formulario vacío.

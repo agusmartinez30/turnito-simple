@@ -7,7 +7,8 @@ Que el cliente de una reserva pueda **pagar por transferencia sin cuenta**: un l
 ## Flujo
 
 ```
-admin copia el link /app/<slug>/pagar/<bookingId> (o lo manda por WhatsApp)
+admin imprime el QR de /app/<slug> (o copia el link /app/<slug>/pagar/<bookingId> y lo manda por WhatsApp)
+  → jugador: GET  /public/c/:slug/bookings                       (lista de turnos recientes; elige el suyo)
   → jugador: GET  /public/c/:slug/bookings/:id/payment          (datos bancarios + saldo restante + conteo de comprobantes)
   → jugador: POST /public/c/:slug/bookings/:id/payment-proof     (nombre, jugadores?, monto, PDF)  → PaymentProof PENDING
   → admin:   GET  /admin/bookings/:id/payment-proofs[/:proofId/file]
@@ -29,7 +30,35 @@ Un comprobante rechazado deja de sumar en `pendingProofsAmt`, así que su monto 
 
 ## Endpoints
 
-### Públicos (`@Public()`, `ThrottlerGuard`) — `PublicPaymentController`
+### Público: lista de turnos recientes (QR) — `PublicBookingsController`
+
+`@Public()`, `ThrottlerGuard`, **60/min por IP**. Es lo que consume la landing del QR (`/app/[slug]`) para que el jugador encuentre su turno sin tener el UUID.
+
+#### `GET /public/c/:slug/bookings`
+
+Devuelve solo reservas `CONFIRMED` del complejo del slug cuyo `startsAt` cae entre **ayer 00:00 y mañana 00:00** (rango `[desde, hasta)`) en el timezone del complejo, o sea hoy y ayer. Orden `startsAt desc`. Las `PENDING` (solicitudes aún no acordadas, que vencen) y las `CANCELLED` (no admiten pago) no aparecen.
+
+```ts
+// 200
+PublicBookingListItem[] = {
+  id: string;
+  court: { name: string; sport: Sport };
+  startsAt: string; endsAt: string;      // ISO con offset del complejo
+  price: number;
+  customerName: string | null;           // nombre completo de quien reservó; null en reservas de mostrador sin cliente
+  payment: {
+    paidAmount: number;
+    status: PaymentStatus;               // de computePaymentSummary
+    hasPendingProof: boolean;            // hay algún comprobante PENDING esperando revisión
+  };
+}[]
+// 404 NOT_FOUND   slug inexistente
+// 429 RATE_LIMITED
+```
+
+**Privacidad.** Se muestra el **nombre y apellido completos** de quien reservó (decisión de producto: así el jugador reconoce su turno); no se exponen teléfono, email, notas, ids de usuario ni datos bancarios. Los datos bancarios siguen saliendo solo en `GET .../bookings/:id/payment`.
+
+### Públicos por reserva (`@Public()`, `ThrottlerGuard`) — `PublicPaymentController`
 
 Cuelgan de `/public/c/:slug/bookings/:id` (slug inexistente → 404; el `:id` pasa por `uuidParam`). La reserva se busca con `court.complexId = complejo del slug`: una reserva de otro complejo responde `404 NOT_FOUND` igual que una inexistente.
 
@@ -171,6 +200,7 @@ Migraciones: `20261106163320_add_payment_proofs_bank_data` (tabla y datos bancar
 
 - **Bucket privado.** Los PDF van a un bucket privado dedicado, `SUPABASE_PAYMENT_PROOFS_BUCKET` (default `payment-proofs`, distinto de `private-documents`, que es solo de imágenes), por `uploadPrivate` con `bucket: 'paymentProofs'`; nunca hay URL pública. El admin los abre con una URL firmada de 10 minutos, pedida al hacer click en "Ver comprobante" y no en el listado ([`18-storage.md`](./18-storage.md)).
 - **El UUID de la reserva es la llave pública.** No hay token aparte: quien tiene el link puede ver los datos de pago de esa reserva y subir comprobantes. Un UUID v4 no se adivina; el rate limit y el tope de `remaining` (la suma de pendientes no puede superar el saldo) acotan el abuso. El endpoint público no expone nombres, montos individuales ni motivos de otros comprobantes, solo conteos.
+- **La lista hace descubribles los ids de reserva.** `GET /public/c/:slug/bookings` entrega los UUID de los turnos de hoy y ayer, así que el UUID deja de ser una llave secreta para esas reservas. La protección pasa a ser el throttle (60/min por IP en la lista, 20/min en el POST) y el tope de `remaining` (la suma de comprobantes `PENDING` no puede superar el saldo), además de la revisión manual del admin. La lista tampoco expone teléfono, email, notas ni datos bancarios, pero sí el nombre completo de quien reservó.
 - **Datos bancarios acotados.** Salen solo en `GET .../payment` (necesarios para transferir) y en las respuestas admin del complejo (`toComplexResponse`). `GET /public/c/:slug/complex` **no** los incluye (lo fija un e2e).
 - Alcance por complejo en todas las queries; ids ajenos dan el mismo 404 que los inexistentes.
 - **Concurrencia:** el chequeo del saldo y el alta del comprobante van en una transacción con `FOR UPDATE` sobre la fila de la reserva, así que subidas simultáneas no pueden sobrepasar `remaining`. La aprobación es segura por su `updateMany` condicional.
@@ -178,8 +208,8 @@ Migraciones: `20261106163320_add_payment_proofs_bank_data` (tabla y datos bancar
 
 ## Tests
 
-- Unit: `public/public-payment.service.spec.ts`, `admin-payments/admin-payment-proofs.service.spec.ts`, `storage/pdf-type.spec.ts`.
-- E2E: `test/e2e/public-payment-proof.e2e-spec.ts` (GET con y sin comprobantes, cancelada, slug/reserva ajena o inexistente, no PDF, `.pdf` sin magic bytes, sin archivo, > 5 MB, reserva paga, validación de `payerName`/`playersCount`/`amount`, monto sobre `remaining`, varios `PENDING` que descuentan, rechazo que devuelve el saldo, carrera de 5 subidas en paralelo cerca del tope), `test/e2e/admin-payment-proofs.e2e-spec.ts` (listado, URL firmada, aprobar crea un único `TRANSFER` y repetir es 409, monto explícito, rechazar sin pago, complejo ajeno, no-admin, cancelada deja `PENDING`), `test/e2e/admin-complex.e2e-spec.ts` (campos bancarios).
+- Unit: `public/public-bookings.service.spec.ts` (lista de turnos recientes), `public/public-payment.service.spec.ts`, `admin-payments/admin-payment-proofs.service.spec.ts`, `storage/pdf-type.spec.ts`.
+- E2E: `test/e2e/public-bookings.e2e-spec.ts` (lista de turnos recientes), `test/e2e/public-payment-proof.e2e-spec.ts` (GET con y sin comprobantes, cancelada, slug/reserva ajena o inexistente, no PDF, `.pdf` sin magic bytes, sin archivo, > 5 MB, reserva paga, validación de `payerName`/`playersCount`/`amount`, monto sobre `remaining`, varios `PENDING` que descuentan, rechazo que devuelve el saldo, carrera de 5 subidas en paralelo cerca del tope), `test/e2e/admin-payment-proofs.e2e-spec.ts` (listado, URL firmada, aprobar crea un único `TRANSFER` y repetir es 409, monto explícito, rechazar sin pago, complejo ajeno, no-admin, cancelada deja `PENDING`), `test/e2e/admin-complex.e2e-spec.ts` (campos bancarios).
 
 ## Fuera de alcance
 
