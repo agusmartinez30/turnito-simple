@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/PageShell';
 import { useComplex } from '@/features/complex/hooks';
 import { BankDetailsForm } from './BankDetailsForm';
 import { ComplexSettingsForm } from './ComplexSettingsForm';
+import { PaymentQrCard } from './PaymentQrCard';
 
 /**
  * /admin/settings: complex data and bank details (used by the public payment link).
@@ -35,6 +36,7 @@ export function SettingsPage() {
             key={`${complex.data.bankCbu}|${complex.data.bankAlias}|${complex.data.bankHolderName}`}
             complex={complex.data}
           />
+          <PaymentQrCard complex={complex.data} />
         </div>
       )}
     </>
