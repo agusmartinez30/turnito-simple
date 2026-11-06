@@ -28,7 +28,7 @@ export const envSchema = z
     SUPABASE_STORAGE_BUCKET: z.string().min(1).default('complex-logos'),
     /** Bucket **privado** de documentos (se leen solo con URLs firmadas). */
     SUPABASE_PRIVATE_BUCKET: z.string().min(1).default('private-documents'),
-    /** Bucket **privado** exclusivo de comprobantes de pago (PDF), URLs firmadas. */
+    /** Bucket **privado** exclusivo de comprobantes de pago (PDF/JPG/PNG), URLs firmadas. */
     SUPABASE_PAYMENT_PROOFS_BUCKET: z.string().min(1).default('payment-proofs'),
   })
   .superRefine((env, ctx) => {

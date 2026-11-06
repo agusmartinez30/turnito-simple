@@ -4,13 +4,16 @@ export const MAX_PROOF_BYTES = 5 * 1024 * 1024;
 export const PAYER_NAME_MAX = 100;
 export const PLAYERS_COUNT_MAX = 50;
 
-/** Client-side check of the receipt; the API re-validates type, size and magic bytes. */
+/** Client-side check of the receipt (PDF, JPG or PNG); the API re-validates type, size and magic bytes. */
+const PROOF_EXTENSION = /.(pdf|jpe?g|png)$/i;
+
 export function validateProofFile(file: File): string | null {
-  const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
-  if (!isPdf) return 'El comprobante tiene que ser un PDF.';
+  if (!PROOF_EXTENSION.test(file.name)) {
+    return 'El comprobante tiene que ser un PDF, JPG o PNG.';
+  }
   if (file.size === 0) return 'El archivo está vacío.';
   if (file.size > MAX_PROOF_BYTES) {
-    return 'El PDF pesa más de 5 MB. Elegí uno más liviano.';
+    return 'El archivo pesa más de 5 MB. Elegí uno más liviano.';
   }
   return null;
 }

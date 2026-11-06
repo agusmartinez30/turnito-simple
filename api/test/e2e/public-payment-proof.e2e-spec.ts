@@ -26,6 +26,8 @@ describe('Public payment proof (e2e)', () => {
     `10.20.${Math.floor(ipSeq / 250)}.${(ipSeq++ % 250) + 1}`;
 
   const PDF = Buffer.from('%PDF-1.7\n%%EOF\n');
+  const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+  const JPEG = Buffer.from('ffd8ffe000104a46494600010100000100010000', 'hex');
   const storage = () => ctx.app.get(StubStorageProvider);
   const url = (id: string, path: string, slug = 'complejo-demo') =>
     `${ctx.prefix}/public/c/${slug}/bookings/${id}/${path}`;
@@ -147,16 +149,57 @@ describe('Public payment proof (e2e)', () => {
   });
 
   describe('POST payment-proof', () => {
-    it('rejects a non-PDF file', async () => {
+    it.each([
+      ['PNG', PNG, 'captura.png', 'image/png', 'png'],
+      ['JPEG', JPEG, 'captura.jpg', 'image/jpeg', 'jpg'],
+    ])(
+      'accepts a %s screenshot and stores it with its real extension',
+      async (_label, body, filename, contentType, ext) => {
+        const booking = await newBooking();
+        const res = await upload(booking.id, body, filename, contentType);
+        expect(res.status).toBe(201);
+        const proof = await prisma.paymentProof.findFirstOrThrow({
+          where: { bookingId: booking.id },
+        });
+        expect(proof.fileKey).toMatch(
+          new RegExp(`^payment-proofs/${booking.id}/[0-9a-f]+\\.${ext}$`),
+        );
+        expect(storage().paymentProofKeys()).toContain(proof.fileKey);
+      },
+    );
+
+    it('rejects an unsupported file type (GIF)', async () => {
       const booking = await newBooking();
       const res = await upload(
         booking.id,
-        Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex'),
+        Buffer.from('GIF89a000000000000', 'ascii'),
+        'foto.gif',
+        'image/gif',
+      );
+      expect(res.status).toBe(415);
+      expect(res.body.error.code).toBe('UNSUPPORTED_FILE_TYPE');
+    });
+
+    it('rejects a PNG/JPEG whose extension does not match its bytes', async () => {
+      const booking = await newBooking();
+      const res = await upload(booking.id, JPEG, 'foto.png', 'image/png');
+      expect(res.status).toBe(415);
+      expect(res.body.error.code).toBe('UNSUPPORTED_FILE_TYPE');
+    });
+
+    it('rejects a .png that has no PNG magic bytes', async () => {
+      const booking = await newBooking();
+      const res = await upload(
+        booking.id,
+        Buffer.from('<html>no soy png</html>'),
         'foto.png',
         'image/png',
       );
       expect(res.status).toBe(415);
       expect(res.body.error.code).toBe('UNSUPPORTED_FILE_TYPE');
+      expect(
+        await prisma.paymentProof.count({ where: { bookingId: booking.id } }),
+      ).toBe(0);
     });
 
     it('rejects a .pdf that has no %PDF- magic bytes', async () => {

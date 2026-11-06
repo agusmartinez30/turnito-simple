@@ -136,7 +136,7 @@ anterior se borró. Es el default (`STORAGE_PROVIDER=stub`), igual que `WHATSAPP
 | `SUPABASE_SERVICE_ROLE_KEY` | (secreto)                      | Obligatoria con `supabase`. **Solo servidor**                                |
 | `SUPABASE_STORAGE_BUCKET`   | `complex-logos`                | Default `complex-logos`; el bucket tiene que existir y estar marcado público |
 | `SUPABASE_PRIVATE_BUCKET`   | `private-documents`            | Default `private-documents`; privado, solo imágenes: fotos del DNI de torneos |
-| `SUPABASE_PAYMENT_PROOFS_BUCKET` | `payment-proofs`          | Default `payment-proofs`; privado, solo PDF: comprobantes de pago |
+| `SUPABASE_PAYMENT_PROOFS_BUCKET` | `payment-proofs`          | Default `payment-proofs`; privado, PDF/JPG/PNG: comprobantes de pago |
 
 El `superRefine` de `env.schema.ts` exige las credenciales cuando el proveedor es `supabase`, así
 que una configuración incompleta **no arranca** en vez de fallar con un 503 en la primera subida.
@@ -169,15 +169,15 @@ Las fotos del DNI de jugadores de torneos (docs/22-tournaments.md › Link del d
 - Stub: `Map` aparte por bucket (`privateKeys()` = documentos, `paymentProofKeys()` = comprobantes); `signedUrl` devuelve un `data:` URL, así en dev/tests las fotos se ven sin bucket.
 - Error de Storage → `LOGO_UPLOAD_FAILED` (502, "No pudimos guardar el archivo…"), igual que el bucket público.
 
-### Comprobantes de pago (PDF)
+### Comprobantes de pago (PDF, JPG y PNG)
 
-Los comprobantes del link público de pago ([`23-public-payment-link.md`](./23-public-payment-link.md)) van a un **bucket privado dedicado**, `SUPABASE_PAYMENT_PROOFS_BUCKET` (default `payment-proofs`), y no al de documentos: `private-documents` solo admite imágenes (MIME restringido) y rechazaba el PDF con `415 invalid_mime_type`. Usan los mismos métodos `uploadPrivate` / `removePrivate` / `signedUrl` con `bucket: 'paymentProofs'`:
+Los comprobantes del link público de pago ([`23-public-payment-link.md`](./23-public-payment-link.md)) van a un **bucket privado dedicado**, `SUPABASE_PAYMENT_PROOFS_BUCKET` (default `payment-proofs`), y no al de documentos: `private-documents` tiene el MIME restringido y rechazaba el PDF con `415 invalid_mime_type`. Usan los mismos métodos `uploadPrivate` / `removePrivate` / `signedUrl` con `bucket: 'paymentProofs'`:
 
-- Key: `payment-proofs/<bookingId>/<16 hex al azar>.pdf`. Se guarda la key en `payment_proofs.file_key`; nunca una URL.
+- Key: `payment-proofs/<bookingId>/<16 hex al azar>.<pdf|jpg|png>`. Se guarda la key en `payment_proofs.file_key`; nunca una URL.
 - Lectura: solo el admin, con `signedUrl(key, 600)` (10 min), pedida al abrir un comprobante.
 - Si el INSERT del comprobante falla, la API borra el objeto con `removePrivate` (*best-effort*).
-- **Setup manual:** Storage › **New bucket**, nombre `payment-proofs`, **Public bucket: OFF**, _file size limit_ 5 MB, _allowed MIME types_ `application/pdf`. Si usás otro nombre, apuntá `SUPABASE_PAYMENT_PROOFS_BUCKET` a él.
-- El tope de la API es 5 MB y la API valida extensión `.pdf` y bytes `%PDF-`; el límite y el MIME del bucket son defensa en profundidad.
+- **Setup manual:** Storage › **New bucket**, nombre `payment-proofs`, **Public bucket: OFF**, _file size limit_ 5 MB, _allowed MIME types_ `application/pdf`, `image/jpeg`, `image/png` (si el bucket ya existía solo con PDF, hay que agregar los dos tipos de imagen o las capturas fallan con `invalid_mime_type`). Si usás otro nombre, apuntá `SUPABASE_PAYMENT_PROOFS_BUCKET` a él.
+- El tope de la API es 5 MB y la API valida que la extensión (`.pdf`, `.jpg`, `.jpeg`, `.png`) coincida con los bytes (`%PDF-`, JPEG o PNG), vía `payment-proof-type.ts`; el límite y el MIME del bucket son defensa en profundidad.
 - **Cambiar de bucket no migra objetos.** Un comprobante subido antes de este cambio al bucket `private-documents` quedaría con su key apuntando a un bucket donde ya no se busca. No se espera ninguno: en el entorno donde se detectó, Storage rechazaba los PDF, así que no llegó a persistir ninguno. Si existiera alguno, hay que copiarlo a `payment-proofs` con la misma key.
 
 **Sniffer de PDF — `pdf-type.ts`.** `isPdf(buffer)` es `true` si el buffer arranca con los bytes `%PDF-`. Igual que con las imágenes, no se confía en el `mimetype` del multipart; además el endpoint exige extensión `.pdf`. Cualquier otra cosa → `415 UNSUPPORTED_FILE_TYPE`. Spec: `pdf-type.spec.ts`.

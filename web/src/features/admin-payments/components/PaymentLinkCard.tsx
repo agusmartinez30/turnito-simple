@@ -73,7 +73,7 @@ export function PaymentLinkCard({
         <CardTitle>Link de pago</CardTitle>
         <CardDescription>
           El cliente ve los datos bancarios del club y sube el comprobante en
-          PDF, sin crear cuenta.
+          PDF o imagen, sin crear cuenta.
           {!hasBankData &&
             ' Todavía no cargaste los datos bancarios en Configuración: el cliente no los va a ver.'}
         </CardDescription>

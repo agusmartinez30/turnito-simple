@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Que el cliente de una reserva pueda **pagar por transferencia sin cuenta**: un link con el UUID de la reserva le muestra los datos bancarios del complejo y le deja subir el comprobante en PDF. El comprobante queda `PENDING` hasta que un admin lo aprueba (se registra un `Payment` `TRANSFER`) o lo rechaza (con motivo). Contraparte de [`web/docs/23-public-payment-page.md`](../../web/docs/23-public-payment-page.md) y de las cards de [`web/docs/12-admin-payments.md`](../../web/docs/12-admin-payments.md).
+Que el cliente de una reserva pueda **pagar por transferencia sin cuenta**: un link con el UUID de la reserva le muestra los datos bancarios del complejo y le deja subir el comprobante (PDF, JPG o PNG). El comprobante queda `PENDING` hasta que un admin lo aprueba (se registra un `Payment` `TRANSFER`) o lo rechaza (con motivo). Contraparte de [`web/docs/23-public-payment-page.md`](../../web/docs/23-public-payment-page.md) y de las cards de [`web/docs/12-admin-payments.md`](../../web/docs/12-admin-payments.md).
 
 ## Flujo
 
@@ -10,7 +10,7 @@ Que el cliente de una reserva pueda **pagar por transferencia sin cuenta**: un l
 admin imprime el QR de /app/<slug> (o copia el link /app/<slug>/pagar/<bookingId> y lo manda por WhatsApp)
   → jugador: GET  /public/c/:slug/bookings                       (lista de turnos recientes; elige el suyo)
   → jugador: GET  /public/c/:slug/bookings/:id/payment          (datos bancarios + saldo restante + conteo de comprobantes)
-  → jugador: POST /public/c/:slug/bookings/:id/payment-proof     (nombre, jugadores?, monto, PDF)  → PaymentProof PENDING
+  → jugador: POST /public/c/:slug/bookings/:id/payment-proof     (nombre, jugadores?, monto, PDF/JPG/PNG)  → PaymentProof PENDING
   → admin:   GET  /admin/bookings/:id/payment-proofs[/:proofId/file]
   → admin:   POST .../:proofId/approve  → PaymentProof APPROVED + Payment TRANSFER (misma transacción)
              POST .../:proofId/reject   → PaymentProof REJECTED + motivo; ese monto vuelve a estar disponible
@@ -102,7 +102,7 @@ Los strings de dígitos se convierten a número; cualquier otra cosa falla `IsIn
 // 404 NOT_FOUND
 // 409 BOOKING_NOT_PAYABLE           "Esta reserva no admite pagos." (CANCELLED) · "Esta reserva ya está paga." (remaining ≤ 0)
 // 413 FILE_TOO_LARGE                lo corta multer (mapeo 413 → FILE_TOO_LARGE del HttpExceptionFilter)
-// 415 UNSUPPORTED_FILE_TYPE         "El comprobante tiene que ser un PDF."
+// 415 UNSUPPORTED_FILE_TYPE         "El comprobante tiene que ser un PDF, JPG o PNG."
 // 429 RATE_LIMITED
 ```
 
@@ -113,7 +113,7 @@ Cuelgan de `/admin/bookings/:id/payment-proofs`. `:id` y `:proofId` pasan por `u
 | Método | Path | Respuesta |
 |---|---|---|
 | `GET` | `/admin/bookings/:id/payment-proofs` | `PaymentProofResponse[]` (`createdAt desc`) |
-| `GET` | `/admin/bookings/:id/payment-proofs/:proofId/file` | `{ url }`: URL firmada del PDF, **10 min** (`PROOF_SIGNED_URL_TTL_SEC`) |
+| `GET` | `/admin/bookings/:id/payment-proofs/:proofId/file` | `{ url }`: URL firmada del comprobante, **10 min** (`PROOF_SIGNED_URL_TTL_SEC`) |
 | `POST` | `/admin/bookings/:id/payment-proofs/:proofId/approve` | 200 `PaymentProofResponse` |
 | `POST` | `/admin/bookings/:id/payment-proofs/:proofId/reject` | 200 `PaymentProofResponse` |
 
@@ -138,9 +138,9 @@ interface PaymentProofResponse {
 
 ### Validación del archivo (POST público)
 
-Orden en `PublicPaymentService.uploadProof`: los campos de texto pasan por el DTO (`400`) → reserva existe y no está `CANCELLED` → archivo presente (`400`) → PDF (`415`) → `remaining` > 0 (`409`) y `amount` ≤ `remaining` (`400` en `details.amount`). Este último chequeo se hace **antes** de subir, para no subir un archivo con monto inválido.
+Orden en `PublicPaymentService.uploadProof`: los campos de texto pasan por el DTO (`400`) → reserva existe y no está `CANCELLED` → archivo presente (`400`) → tipo PDF/JPG/PNG (`415`) → `remaining` > 0 (`409`) y `amount` ≤ `remaining` (`400` en `details.amount`). Este último chequeo se hace **antes** de subir, para no subir un archivo con monto inválido.
 
-- Solo PDF: el nombre debe terminar en `.pdf` **y** el buffer empezar con `%PDF-` (`isPdf` en `storage/pdf-type.ts`). El `mimetype` del multipart no se mira: lo elige el cliente.
+- Formatos: PDF, JPEG y PNG. La extensión (`.pdf`, `.jpg`/`.jpeg`, `.png`) **y** los bytes iniciales (`%PDF-`, `FF D8 FF`, firma PNG) tienen que coincidir (`detectPaymentProofType` en `storage/payment-proof-type.ts`, que reutiliza `isPdf` y `sniffImageType`). WebP, GIF, HEIC y SVG se rechazan con `415`. El `mimetype` del multipart no se mira: lo elige el cliente.
 - Máximo 5 MB (`MAX_PAYMENT_PROOF_BYTES`), cortado por multer antes de bufferear.
 - **Varios `PENDING` por reserva**: se eliminó la regla de "un solo `PENDING`"; cada jugador sube su comprobante mientras haya `remaining`. `PAYMENT_PROOF_ALREADY_PENDING` ya no se lanza (queda en el enum de la API marcado `@deprecated`).
 - No pagable: reserva `CANCELLED` o `remaining` ≤ 0.
@@ -148,7 +148,7 @@ Orden en `PublicPaymentService.uploadProof`: los campos de texto pasan por el DT
 
 ### Subida y alta (con lock)
 
-Key `payment-proofs/<bookingId>/<16 hex al azar>.pdf` → `storage.uploadPrivate` → transacción que hace `SELECT id FROM bookings WHERE id = … FOR UPDATE`, **relee** reserva, pagos y totales de comprobantes, repite el chequeo de `remaining`/`amount` y recién entonces `paymentProof.create({ bookingId, fileKey, payerName, playersCount, declaredAmount })`. El lock de fila serializa las subidas de una misma reserva: dos POST concurrentes no pueden pasar ambos el límite (un e2e dispara 5 en paralelo cerca del tope y solo entran los que caben). Ante cualquier fallo (incluido el chequeo dentro de la transacción) se borra el archivo privado (*best-effort*, `warn` si no se pudo) y se relanza el error original.
+Key `payment-proofs/<bookingId>/<16 hex al azar>.<pdf|jpg|png>` (extensión y `contentType` salen del tipo detectado) → `storage.uploadPrivate` → transacción que hace `SELECT id FROM bookings WHERE id = … FOR UPDATE`, **relee** reserva, pagos y totales de comprobantes, repite el chequeo de `remaining`/`amount` y recién entonces `paymentProof.create({ bookingId, fileKey, payerName, playersCount, declaredAmount })`. El lock de fila serializa las subidas de una misma reserva: dos POST concurrentes no pueden pasar ambos el límite (un e2e dispara 5 en paralelo cerca del tope y solo entran los que caben). Ante cualquier fallo (incluido el chequeo dentro de la transacción) se borra el archivo privado (*best-effort*, `warn` si no se pudo) y se relanza el error original.
 
 ### Dónde los revisa el admin
 
@@ -198,7 +198,7 @@ Migraciones: `20261106163320_add_payment_proofs_bank_data` (tabla y datos bancar
 
 ## Seguridad
 
-- **Bucket privado.** Los PDF van a un bucket privado dedicado, `SUPABASE_PAYMENT_PROOFS_BUCKET` (default `payment-proofs`, distinto de `private-documents`, que es solo de imágenes), por `uploadPrivate` con `bucket: 'paymentProofs'`; nunca hay URL pública. El admin los abre con una URL firmada de 10 minutos, pedida al hacer click en "Ver comprobante" y no en el listado ([`18-storage.md`](./18-storage.md)).
+- **Bucket privado.** Los comprobantes van a un bucket privado dedicado, `SUPABASE_PAYMENT_PROOFS_BUCKET` (default `payment-proofs`, distinto de `private-documents`, que es solo de imágenes), por `uploadPrivate` con `bucket: 'paymentProofs'`; nunca hay URL pública. El admin los abre con una URL firmada de 10 minutos, pedida al hacer click en "Ver comprobante" y no en el listado ([`18-storage.md`](./18-storage.md)).
 - **El UUID de la reserva es la llave pública.** No hay token aparte: quien tiene el link puede ver los datos de pago de esa reserva y subir comprobantes. Un UUID v4 no se adivina; el rate limit y el tope de `remaining` (la suma de pendientes no puede superar el saldo) acotan el abuso. El endpoint público no expone nombres, montos individuales ni motivos de otros comprobantes, solo conteos.
 - **La lista hace descubribles los ids de reserva.** `GET /public/c/:slug/bookings` entrega los UUID de los turnos de hoy y ayer, así que el UUID deja de ser una llave secreta para esas reservas. La protección pasa a ser el throttle (60/min por IP en la lista, 20/min en el POST) y el tope de `remaining` (la suma de comprobantes `PENDING` no puede superar el saldo), además de la revisión manual del admin. La lista tampoco expone teléfono, email, notas ni datos bancarios, pero sí el nombre completo de quien reservó.
 - **Datos bancarios acotados.** Salen solo en `GET .../payment` (necesarios para transferir) y en las respuestas admin del complejo (`toComplexResponse`). `GET /public/c/:slug/complex` **no** los incluye (lo fija un e2e).
@@ -208,12 +208,12 @@ Migraciones: `20261106163320_add_payment_proofs_bank_data` (tabla y datos bancar
 
 ## Tests
 
-- Unit: `public/public-bookings.service.spec.ts` (lista de turnos recientes), `public/public-payment.service.spec.ts`, `admin-payments/admin-payment-proofs.service.spec.ts`, `storage/pdf-type.spec.ts`.
-- E2E: `test/e2e/public-bookings.e2e-spec.ts` (lista de turnos recientes), `test/e2e/public-payment-proof.e2e-spec.ts` (GET con y sin comprobantes, cancelada, slug/reserva ajena o inexistente, no PDF, `.pdf` sin magic bytes, sin archivo, > 5 MB, reserva paga, validación de `payerName`/`playersCount`/`amount`, monto sobre `remaining`, varios `PENDING` que descuentan, rechazo que devuelve el saldo, carrera de 5 subidas en paralelo cerca del tope), `test/e2e/admin-payment-proofs.e2e-spec.ts` (listado, URL firmada, aprobar crea un único `TRANSFER` y repetir es 409, monto explícito, rechazar sin pago, complejo ajeno, no-admin, cancelada deja `PENDING`), `test/e2e/admin-complex.e2e-spec.ts` (campos bancarios).
+- Unit: `public/public-bookings.service.spec.ts` (lista de turnos recientes), `public/public-payment.service.spec.ts`, `admin-payments/admin-payment-proofs.service.spec.ts`, `storage/pdf-type.spec.ts`, `storage/payment-proof-type.spec.ts`.
+- E2E: `test/e2e/public-bookings.e2e-spec.ts` (lista de turnos recientes), `test/e2e/public-payment-proof.e2e-spec.ts` (GET con y sin comprobantes, cancelada, slug/reserva ajena o inexistente, PNG/JPEG aceptados con su extensión real en la key, GIF, extensión que no coincide con los bytes, `.png` sin magic bytes, sin archivo, > 5 MB, reserva paga, validación de `payerName`/`playersCount`/`amount`, monto sobre `remaining`, varios `PENDING` que descuentan, rechazo que devuelve el saldo, carrera de 5 subidas en paralelo cerca del tope), `test/e2e/admin-payment-proofs.e2e-spec.ts` (listado, URL firmada, aprobar crea un único `TRANSFER` y repetir es 409, monto explícito, rechazar sin pago, complejo ajeno, no-admin, cancelada deja `PENDING`), `test/e2e/admin-complex.e2e-spec.ts` (campos bancarios).
 
 ## Fuera de alcance
 
 - Pago online / conciliación automática; OCR del comprobante.
-- Formatos distintos de PDF (imágenes de captura).
+- Otros formatos (WebP, HEIC, GIF).
 - Notificar al jugador de la aprobación o el rechazo (ve el estado al reabrir el link).
 - Vencimiento del link o token firmado.

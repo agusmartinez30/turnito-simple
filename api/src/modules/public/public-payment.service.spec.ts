@@ -9,6 +9,8 @@ import { CreatePaymentProofDto } from './dto/create-payment-proof.dto';
 import { PublicPaymentService } from './public-payment.service';
 
 const PDF = Buffer.from('%PDF-1.7\n%%EOF');
+const PNG = Buffer.from('89504e470d0a1a0a0000000d49484452', 'hex');
+const JPEG = Buffer.from('ffd8ffe000104a46494600010100000100010000', 'hex');
 
 function pdfFile(overrides: Partial<Express.Multer.File> = {}) {
   return {
@@ -273,13 +275,62 @@ describe('PublicPaymentService', () => {
       );
     });
 
-    it('rejects a non-PDF extension', async () => {
+    it.each([
+      ['PNG', PNG, 'captura.png', 'image/png', 'png'],
+      ['JPEG', JPEG, 'captura.jpeg', 'image/jpeg', 'jpg'],
+    ])(
+      'stores a %s screenshot with its real extension and content type',
+      async (_label, buffer, originalname, contentType, ext) => {
+        await service.uploadProof(
+          complexFixture,
+          'b1',
+          dto(),
+          pdfFile({ buffer, originalname, mimetype: 'application/pdf' }),
+        );
+        const input = uploadPrivate.mock.calls[0][0];
+        expect(input.key).toMatch(
+          new RegExp(`^payment-proofs/b1/[0-9a-f]+\\.${ext}$`),
+        );
+        expect(input.contentType).toBe(contentType);
+      },
+    );
+
+    it('rejects an unsupported extension', async () => {
       await expectCode(
         service.uploadProof(
           complexFixture,
           'b1',
           dto(),
-          pdfFile({ originalname: 'foto.png' }),
+          pdfFile({ originalname: 'foto.gif' }),
+        ),
+        ErrorCode.UNSUPPORTED_FILE_TYPE,
+      );
+      expect(uploadPrivate).not.toHaveBeenCalled();
+    });
+
+    it('rejects an image whose extension does not match its bytes', async () => {
+      await expectCode(
+        service.uploadProof(
+          complexFixture,
+          'b1',
+          dto(),
+          pdfFile({ buffer: JPEG, originalname: 'foto.png' }),
+        ),
+        ErrorCode.UNSUPPORTED_FILE_TYPE,
+      );
+      expect(uploadPrivate).not.toHaveBeenCalled();
+    });
+
+    it('rejects a .png without the magic bytes', async () => {
+      await expectCode(
+        service.uploadProof(
+          complexFixture,
+          'b1',
+          dto(),
+          pdfFile({
+            buffer: Buffer.from('<html>fake</html>'),
+            originalname: 'foto.png',
+          }),
         ),
         ErrorCode.UNSUPPORTED_FILE_TYPE,
       );

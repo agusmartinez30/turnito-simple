@@ -4,13 +4,13 @@
 
 ## Objetivo
 
-Que el cliente de una reserva abra un link, vea **los datos bancarios del complejo y cuánto falta pagar**, transfiera y **suba el comprobante en PDF**. El comprobante queda en revisión; el admin lo aprueba (se registra el pago) o lo rechaza con motivo, desde el detalle de la reserva o desde el listado unificado de `/admin/payments` (botones Aceptar / Rechazar / Ver comprobante; ver `12-admin-payments.md`). Sin cuenta: el UUID de la reserva es la llave.
+Que el cliente de una reserva abra un link, vea **los datos bancarios del complejo y cuánto falta pagar**, transfiera y **suba el comprobante (PDF, JPG o PNG)**. El comprobante queda en revisión; el admin lo aprueba (se registra el pago) o lo rechaza con motivo, desde el detalle de la reserva o desde el listado unificado de `/admin/payments` (botones Aceptar / Rechazar / Ver comprobante; ver `12-admin-payments.md`). Sin cuenta: el UUID de la reserva es la llave.
 
 ## Flujo con QR
 
 ```
 admin imprime el QR (Ajustes → "QR de pago")  →  jugador escanea  →  /app/[slug]  (lista de turnos de hoy y ayer)
-  → toca su turno  →  /app/[slug]/pagar/[id]  (resumen + datos bancarios)  →  sube el comprobante PDF  →  PaymentProof PENDING
+  → toca su turno  →  /app/[slug]/pagar/[id]  (resumen + datos bancarios)  →  sube el comprobante (PDF/JPG/PNG)  →  PaymentProof PENDING
   → admin aprueba (se registra el Payment) o rechaza con motivo
 ```
 
@@ -61,19 +61,19 @@ Un comprobante rechazado simplemente reabre el saldo: la API deja de contarlo y 
 | "Nombre de quien paga" | requerido, trim, 1..100 |
 | "Cantidad de jugadores que paga" (opcional) | entero 1..50; vacío = no se envía |
 | "Monto del comprobante" | requerido, entero ≥ 1 y ≤ `remaining`; hint "Saldo a pagar: $X" con el botón "Usar el saldo completo" (`setValue`) |
-| PDF | `<input type="file" accept="application/pdf,.pdf">` (`data-testid="payment-proof-input"`), tarjeta con nombre y tamaño y botón "Quitar archivo" |
+| Comprobante | `<input type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">` (`data-testid="payment-proof-input"`), tarjeta con nombre y tamaño y botón "Quitar archivo" |
 
-El esquema se arma con `buildProofFormSchema(remaining)` (`schemas.ts`); los campos numéricos viajan como string y se convierten en `parseProofForm`. "Confirmar pago" queda deshabilitado hasta que el form sea válido **y** haya un PDF válido, y mientras envía ("Enviando…"). El `POST` manda `payerName`, `playersCount?`, `amount` y `file` como multipart.
+El esquema se arma con `buildProofFormSchema(remaining)` (`schemas.ts`); los campos numéricos viajan como string y se convierten en `parseProofForm`. "Confirmar pago" queda deshabilitado hasta que el form sea válido **y** haya un archivo válido, y mientras envía ("Enviando…"). El `POST` manda `payerName`, `playersCount?`, `amount` y `file` como multipart.
 
 ## Reglas de negocio y validaciones
 
 ### Validación cliente (`schemas.ts › validateProofFile`)
 
-- Tipo: `file.type === 'application/pdf'` o nombre terminado en `.pdf` → si no, "El comprobante tiene que ser un PDF."
+- Tipo: nombre terminado en `.pdf`, `.jpg`, `.jpeg` o `.png` → si no, "El comprobante tiene que ser un PDF, JPG o PNG."
 - Vacío → "El archivo está vacío."
-- Más de 5 MB (`MAX_PROOF_BYTES`) → "El PDF pesa más de 5 MB. Elegí uno más liviano."
+- Más de 5 MB (`MAX_PROOF_BYTES`) → "El archivo pesa más de 5 MB. Elegí uno más liviano."
 
-Un archivo inválido no se guarda en el estado del form y no se envía. La API vuelve a validar tipo, tamaño y los bytes `%PDF-`: el chequeo del cliente es solo comodidad.
+Un archivo inválido no se guarda en el estado del form y no se envía. La API vuelve a validar tipo, tamaño y los bytes iniciales (PDF, JPEG o PNG): el chequeo del cliente es solo comodidad.
 
 ### Errores
 
@@ -123,17 +123,17 @@ El descuento es **visual**: el pago real se registra cuando el admin aprueba. Va
 - [ ] Un slug inexistente muestra "Complejo no encontrado"; sin turnos, el mensaje de lista vacía.
 - [ ] En Ajustes, la card "QR de pago" muestra el QR de `/app/<slug>`; copiar, descargar e imprimir funcionan (al imprimir solo sale el QR).
 
-- [ ] Reserva con saldo: se ven resumen con "Saldo a pagar", datos bancarios con copiar y el formulario; "Confirmar pago" queda deshabilitado hasta completar nombre, monto válido (≤ saldo) y PDF.
+- [ ] Reserva con saldo: se ven resumen con "Saldo a pagar", datos bancarios con copiar y el formulario; "Confirmar pago" queda deshabilitado hasta completar nombre, monto válido (≤ saldo) y comprobante válido (PDF, JPG o PNG).
 - [ ] Un envío exitoso muestra el monto enviado y el saldo actualizado, y permite "Enviar otro comprobante" con el formulario vacío.
 - [ ] Un monto mayor al saldo muestra el error bajo el campo.
 - [ ] Con el saldo cubierto por comprobantes en revisión se ve "Ya está cubierto, pendiente de revisión" sin formulario; si el admin rechaza uno, el saldo vuelve y reaparece el formulario.
-- [ ] Un archivo que no es PDF o pesa más de 5 MB se rechaza en el cliente con su mensaje.
+- [ ] Un archivo que no es PDF, JPG o PNG o pesa más de 5 MB se rechaza en el cliente con su mensaje.
 - [ ] Tras aprobar todo desde el panel, el link muestra "Turno pago, ¡gracias!".
 - [ ] Reserva cancelada o UUID inexistente → pantalla de error amigable, sin formulario.
 - [ ] Complejo sin datos bancarios → aviso y sin formulario.
 
 ## Fuera de alcance
 
-- Subir imágenes (solo PDF) o varios archivos en un mismo envío.
+- Otros formatos (WebP, HEIC) o varios archivos en un mismo envío.
 - Ver nombres o montos de otros pagadores (la API solo expone conteos).
 - Aviso al cliente cuando el admin revisa (ve el estado al reabrir o por el refresco de 30 s).

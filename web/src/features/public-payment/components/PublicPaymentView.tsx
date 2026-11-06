@@ -134,8 +134,8 @@ function PaymentContent({
           Pagar tu turno
         </h1>
         <p className="text-muted-foreground text-pretty">
-          Transferí al complejo y subí el comprobante en PDF para que lo
-          revisen.
+          Transferí al complejo y subí el comprobante (PDF o captura) para que
+          lo revisen.
         </p>
       </header>
 
@@ -406,7 +406,8 @@ function UploadForm({
       <CardHeader>
         <CardTitle>Tu comprobante</CardTitle>
         <CardDescription>
-          Cargá los datos de la transferencia y el PDF (hasta 5 MB).
+          Cargá los datos de la transferencia y el comprobante: PDF, JPG o PNG
+          (hasta 5 MB).
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -492,7 +493,7 @@ function UploadForm({
             id="payment-proof-file"
             data-testid="payment-proof-input"
             type="file"
-            accept="application/pdf,.pdf"
+            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
             className="sr-only"
             disabled={busy}
             onChange={(event) => choose(event.target.files?.[0])}
@@ -523,7 +524,9 @@ function UploadForm({
               className="bg-muted/40 hover:bg-muted flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed p-6 text-center text-sm transition-colors"
             >
               <UploadIcon className="text-muted-foreground size-5" />
-              <span className="font-medium">Elegir comprobante en PDF</span>
+              <span className="font-medium">
+                Elegir comprobante (PDF, JPG o PNG)
+              </span>
             </label>
           )}
 

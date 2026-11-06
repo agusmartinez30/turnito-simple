@@ -10,7 +10,7 @@ export interface UploadInput {
 
 /**
  * Bucket privado destino. `documents` (default) es el de los DNI (solo imágenes);
- * `paymentProofs` es el de los comprobantes de pago (PDF).
+ * `paymentProofs` es el de los comprobantes de pago (PDF, JPG o PNG).
  */
 export type PrivateBucket = 'documents' | 'paymentProofs';
 

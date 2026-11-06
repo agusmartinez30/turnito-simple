@@ -11,7 +11,10 @@ import { ErrorCode } from '../../common/errors/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { computePaymentSummary } from '../../shared/payments/payment-summary';
 import { toComplexIso } from '../../shared/time/tz';
-import { isPdf } from '../storage/pdf-type';
+import {
+  detectPaymentProofType,
+  PaymentProofType,
+} from '../storage/payment-proof-type';
 import { STORAGE_PROVIDER_TOKEN } from '../storage/providers/storage-provider.interface';
 import type { IStorageProvider } from '../storage/providers/storage-provider.interface';
 import { CreatePaymentProofDto } from './dto/create-payment-proof.dto';
@@ -24,7 +27,7 @@ export const PUBLIC_PAYMENT_MESSAGES = {
   notPayable: 'Esta reserva no admite pagos.',
   alreadyPaid: 'Esta reserva ya está paga.',
   fileRequired: 'Elegí un archivo',
-  notPdf: 'El comprobante tiene que ser un PDF.',
+  unsupportedType: 'El comprobante tiene que ser un PDF, JPG o PNG.',
   validation: 'Datos inválidos.',
   amountOverRemaining: (remaining: number) =>
     `El monto no puede superar el saldo restante ($${remaining}).`,
@@ -100,7 +103,8 @@ export class PublicPaymentService {
     file?: Express.Multer.File,
   ): Promise<PublicPaymentResponse> {
     const booking = await this.findPayableOrThrow(complex, bookingId);
-    this.assertPdf(file);
+    this.assertFile(file);
+    const type = this.detectType(file);
     // Early (lock-free) check so an invalid amount never uploads a file.
     this.assertAmountFits(
       booking.price,
@@ -109,11 +113,11 @@ export class PublicPaymentService {
       dto.amount,
     );
 
-    const key = `payment-proofs/${bookingId}/${randomBytes(8).toString('hex')}.pdf`;
+    const key = `payment-proofs/${bookingId}/${randomBytes(8).toString('hex')}.${type.extension}`;
     await this.storage.uploadPrivate({
       key,
       body: file.buffer,
-      contentType: 'application/pdf',
+      contentType: type.contentType,
       bucket: 'paymentProofs',
     });
     try {
@@ -219,7 +223,7 @@ export class PublicPaymentService {
     return totals;
   }
 
-  private assertPdf(
+  private assertFile(
     file?: Express.Multer.File,
   ): asserts file is Express.Multer.File {
     if (!file?.buffer?.length || !file.originalname) {
@@ -229,12 +233,18 @@ export class PublicPaymentService {
         { [PAYMENT_PROOF_FIELD]: [PUBLIC_PAYMENT_MESSAGES.fileRequired] },
       );
     }
-    if (!/\.pdf$/i.test(file.originalname) || !isPdf(file.buffer)) {
+  }
+
+  /** Extension AND magic bytes must agree; returns the real type to store. */
+  private detectType(file: Express.Multer.File): PaymentProofType {
+    const type = detectPaymentProofType(file.originalname, file.buffer);
+    if (!type) {
       throw new AppException(
         ErrorCode.UNSUPPORTED_FILE_TYPE,
-        PUBLIC_PAYMENT_MESSAGES.notPdf,
+        PUBLIC_PAYMENT_MESSAGES.unsupportedType,
       );
     }
+    return type;
   }
 
   private async findPayableOrThrow(complex: Complex, bookingId: string) {
