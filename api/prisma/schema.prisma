@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Sport {
+  PADEL
+  FOOTBALL_5
+  FOOTBALL_7
+  TENNIS
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+}
+
+enum UserRole {
+  PLAYER
+  ADMIN
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+}
+
+enum BookingSource {
+  PLAYER
+  ADMIN
+  PUBLIC
+}
+
+enum CustomerSource {
+  PUBLIC // created on its own, requesting a booking from the public app
+  ADMIN // created from the admin panel
+}
+
+enum PaymentProofStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Complex {
+  id                        String   @id @default(uuid())
+  slug                      String   @unique // URL-safe, inmutable: identifica al complejo en /public/c/:slug y /app/[slug]
+  name                      String
+  address                   String
+  timezone                  String // IANA, ej. "America/Argentina/Buenos_Aires"
+  cancellationWindowHours   Int      @default(24) @map("cancellation_window_hours")
+  autoConfirmPublicRequests Boolean  @default(false) @map("auto_confirm_public_requests")
+  instagramUrl              String?  @map("instagram_url")
+  facebookUrl               String?  @map("facebook_url")
+  tiktokUrl                 String?  @map("tiktok_url")
+  youtubeUrl                String?  @map("youtube_url")
+  /// WhatsApp público de contacto, canónico '+' + dígitos: botón "Inscribirme" de los torneos.
+  contactWhatsapp           String?  @map("contact_whatsapp")
+  /// Marca del complejo: hex #rrggbb en minúsculas. null = paleta Clubix (web/src/lib/theme.ts).
+  primaryColor              String?  @map("primary_color") @db.VarChar(7)
+  secondaryColor            String?  @map("secondary_color") @db.VarChar(7)
+  /// URL pública del logo en el bucket, siempre generada por la API al subir el archivo
+  /// (docs/18-storage.md). No es editable por PATCH. null = ícono genérico.
+  logoUrl                   String?  @map("logo_url")
+  /// Datos bancarios para recibir transferencias (link de pago de la reserva). Solo admin.
+  bankCbu                   String?  @map("bank_cbu") @db.VarChar(22)
+  bankAlias                 String?  @map("bank_alias") @db.VarChar(20)
+  bankHolderName            String?  @map("bank_holder_name") @db.VarChar(100)
+  createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  courts      Court[]
+  users       User[]
+  customers   Customer[]
+
+  @@map("complexes")
+}
+
+model Court {
+  id                  String   @id @default(uuid())
+  complexId           String   @map("complex_id")
+  name                String
+  sport               Sport
+  surface             String?
+  isIndoor            Boolean  @default(false) @map("is_indoor")
+  slotDurationMinutes Int      @map("slot_duration_minutes")
+  openTime            String   @map("open_time") // "HH:mm" hora local del complejo
+  closeTime           String   @map("close_time") // "HH:mm"
+  pricePerSlot        Int      @map("price_per_slot") // moneda local, sin decimales
+  isActive            Boolean  @default(true) @map("is_active")
+  imageUrl            String?  @map("image_url")
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  complex           Complex            @relation(fields: [complexId], references: [id])
+  bookings          Booking[]
+
+  @@unique([complexId, name])
+  @@index([complexId, isActive, sport])
+  @@map("courts")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  phone        String?
+  passwordHash String   @map("password_hash")
+  role         UserRole @default(PLAYER)
+  complexId    String?  @map("complex_id") // ADMIN: obligatorio (CHECK users_admin_has_complex_chk); PLAYER: null, es global
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  complex                      Complex?            @relation(fields: [complexId], references: [id], onDelete: Restrict)
+  createdCustomers             Customer[]          @relation("customerCreatedBy")
+  createdBookings              Booking[]           @relation("bookingCreatedBy")
+  cancelledBookings            Booking[]           @relation("bookingCancelledBy")
+  confirmedBookings            Booking[]           @relation("bookingConfirmedBy")
+  startedBookings              Booking[]           @relation("bookingStartedBy")
+  finishedBookings             Booking[]           @relation("bookingFinishedBy")
+  registeredPayments           Payment[]           @relation("paymentRegisteredBy")
+  voidedPayments               Payment[]           @relation("paymentVoidedBy")
+  reviewedPaymentProofs        PaymentProof[]      @relation("paymentProofReviewedBy")
+
+  @@index([complexId])
+  @@map("users")
+}
+
+/// Cliente del complejo (). No tiene cuenta ni puede iniciar sesión:
+/// nace pidiendo turno desde /app/[slug] o lo carga el panel. Identidad = teléfono por complejo.
+model Customer {
+  id          String         @id @default(uuid())
+  complexId   String         @map("complex_id")
+  firstName   String         @map("first_name")
+  lastName    String?        @map("last_name") // el mostrador puede cargar solo el nombre
+  phone       String? // canonizado '+' + dígitos (CHECK customers_phone_fmt_chk)
+  note        String? // interna del complejo, nunca se expone al cliente
+  isActive    Boolean        @default(true) @map("is_active") // false = archivado
+  source      CustomerSource @default(ADMIN)
+  createdById String?        @map("created_by_id") // null = alta desde la app pública
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  complex               Complex                @relation(fields: [complexId], references: [id], onDelete: Restrict)
+  createdBy             User?                  @relation("customerCreatedBy", fields: [createdById], references: [id])
+  bookings              Booking[]
+
+  // Postgres usa NULLS DISTINCT: varios clientes sin teléfono conviven en el mismo complejo.
+  @@unique([complexId, phone])
+  @@index([complexId, isActive, firstName, lastName])
+  @@map("customers")
+}
+
+model Booking {
+  id                 String        @id @default(uuid())
+  courtId            String        @map("court_id")
+  customerId         String?       @map("customer_id") // null = turno de mostrador sin cliente ()
+  startsAt           DateTime      @map("starts_at") @db.Timestamptz(3) // UTC
+  endsAt             DateTime      @map("ends_at") @db.Timestamptz(3) // UTC
+  status             BookingStatus @default(CONFIRMED)
+  price              Int // snapshot de court.pricePerSlot al reservar
+  source             BookingSource @default(PLAYER)
+  note               String? // interna del complejo, nunca se expone al jugador
+  createdById        String?       @map("created_by_id") // admin que la cargó (source ADMIN)
+  createdAt          DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  cancelledAt        DateTime?     @map("cancelled_at") @db.Timestamptz(3)
+  cancelledById      String?       @map("cancelled_by_id") // null = la canceló el jugador (o sigue vigente)
+  cancellationReason String?       @map("cancellation_reason")
+  expiresAt          DateTime?     @map("expires_at") @db.Timestamptz(3) // solo PENDING: vencimiento de la solicitud
+  confirmedAt        DateTime?     @map("confirmed_at") @db.Timestamptz(3)
+  confirmedById      String?       @map("confirmed_by_id")
+  startedAt          DateTime?     @map("started_at") @db.Timestamptz(3) // inicio manual del turno desde el panel (docs/12-turn-progress.md)
+  startedById        String?       @map("started_by_id")
+  finishedAt         DateTime?     @map("finished_at") @db.Timestamptz(3) // fin manual del turno: congela el cronómetro
+  finishedById       String?       @map("finished_by_id")
+
+  court           Court             @relation(fields: [courtId], references: [id])
+  customer        Customer?         @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy       User?             @relation("bookingCreatedBy", fields: [createdById], references: [id])
+  cancelledBy     User?             @relation("bookingCancelledBy", fields: [cancelledById], references: [id])
+  confirmedBy     User?             @relation("bookingConfirmedBy", fields: [confirmedById], references: [id])
+  startedBy       User?             @relation("bookingStartedBy", fields: [startedById], references: [id])
+  finishedBy      User?             @relation("bookingFinishedBy", fields: [finishedById], references: [id])
+  payments        Payment[]
+  paymentProofs   PaymentProof[]
+
+  @@index([customerId, startsAt])
+  @@index([courtId, startsAt])
+  @@index([startsAt])
+  @@index([status, expiresAt])
+  @@map("bookings")
+}
+
+model Payment {
+  id             String        @id @default(uuid())
+  bookingId      String        @map("booking_id")
+  amount         Int // moneda local, entero, > 0 (CHECK)
+  method         PaymentMethod
+  note           String? // texto libre, ej. quién pagó
+  registeredById String        @map("registered_by_id") // admin que lo cargó
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  voidedAt       DateTime?     @map("voided_at") @db.Timestamptz(3) // null = vigente
+  voidedById     String?       @map("voided_by_id")
+  voidReason     String?       @map("void_reason")
+
+  booking      Booking @relation(fields: [bookingId], references: [id])
+  registeredBy User    @relation("paymentRegisteredBy", fields: [registeredById], references: [id])
+  voidedBy     User?   @relation("paymentVoidedBy", fields: [voidedById], references: [id])
+
+  @@index([bookingId])
+  @@index([createdAt]) // caja: pagos por rango de fecha de registro
+  @@map("payments")
+}
+
+/**
+ * Comprobante de transferencia subido por el jugador desde el link de pago de la reserva.
+ */
+model PaymentProof {
+  id             String             @id @default(uuid())
+  bookingId      String             @map("booking_id")
+  fileKey        String             @map("file_key") // clave en el storage privado
+  status         PaymentProofStatus @default(PENDING)
+  payerName      String             @map("payer_name") // quien paga (1..100), lo declara el jugador
+  playersCount   Int?               @map("players_count") // cuántos jugadores cubre el pago (1..50), opcional
+  declaredAmount Int                @map("declared_amount") // pesos que dice el comprobante; 0 solo en filas previas al cambio
+  amount         Int? // monto APROBADO por el admin (se setea al aprobar)
+  createdAt      DateTime           @default(now()) @map("created_at") @db.Timestamptz(3)
+  reviewedAt     DateTime?          @map("reviewed_at") @db.Timestamptz(3)
+  reviewedById   String?            @map("reviewed_by_id")
+  rejectReason   String?            @map("reject_reason")
+
+  booking    Booking @relation(fields: [bookingId], references: [id])
+  reviewedBy User?   @relation("paymentProofReviewedBy", fields: [reviewedById], references: [id])
+
+  @@index([bookingId])
+  @@index([status])
+  @@map("payment_proofs")
+}

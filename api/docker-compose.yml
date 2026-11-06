@@ -1,0 +1,24 @@
+name: turnito-simple
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: turnito-simple-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: app
+      POSTGRES_PASSWORD: app
+      POSTGRES_DB: turnito_simple
+    ports:
+      - '5441:5432'
+    volumes:
+      - turnito-simple-db-data:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U app -d turnito_simple']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  turnito-simple-db-data:
