@@ -2,6 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
+  ArrowLeftIcon,
   CheckIcon,
   ClockIcon,
   CopyIcon,
@@ -115,6 +116,7 @@ function PaymentContent({
   tz: string;
 }) {
   const { booking, bank, proofs } = data;
+  const home = usePublicHome();
   const upload = useUploadPaymentProof(id);
   // Bumping the key remounts the form (fresh values) without calling form.reset().
   const [formKey, setFormKey] = useState(0);
@@ -129,6 +131,15 @@ function PaymentContent({
 
   return (
     <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
+      <ButtonLink
+        href={home}
+        variant="ghost"
+        size="sm"
+        className="-ml-2.5 w-fit"
+      >
+        <ArrowLeftIcon />
+        Volver a los turnos
+      </ButtonLink>
       <header className="flex flex-col gap-1">
         <h1 className="font-display text-3xl leading-none font-bold tracking-tight">
           Pagar tu turno
