@@ -89,6 +89,7 @@ pnpm typecheck && pnpm lint && pnpm build
 | `/admin/payments` | Payments ledger and payment-proof review |
 | `/admin/customers`, `/admin/customers/[id]`, `/admin/customers/new` | Customers (needed by the booking picker) |
 | `/admin/courts`, `/admin/courts/[id]`, `/admin/courts/new` | Courts (needed by the booking form) |
+| `/admin/settings` | Complex data (name, address) and bank details (holder, CBU/CVU, alias) used by the payment link |
 | `/app/[slug]/pagar/[id]` | Public payment page: bank data and payment proof upload |
 
 ## API routes (prefix `/api/v1`)
@@ -96,6 +97,7 @@ pnpm typecheck && pnpm lint && pnpm build
 - Auth: `POST /auth/register`, `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
 - Bookings: `POST/GET /admin/bookings`, `GET /admin/bookings/:id`, `PATCH /admin/bookings/:id/{cancel,confirm,start,finish}`
 - Payments: `/admin/bookings/:id/payments`, `/admin/payments` (ledger), `/admin/bookings/:id/payment-proofs` (list, file, approve, reject)
+- Settings: `PATCH /admin/complex` (ADMIN only; name, address, bank details)
 - Courts / customers / complex: `/admin/courts`, `/admin/customers`, `/admin/complex`, `/complex`, `/courts`
 - Public: `GET /public/c/:slug/complex`, `GET /public/c/:slug/bookings/:id/payment`,
   `POST /public/c/:slug/bookings/:id/payment-proof`

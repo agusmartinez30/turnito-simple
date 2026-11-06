@@ -8,6 +8,7 @@ import {
   LandPlotIcon,
   LogOutIcon,
   MenuIcon,
+  SettingsIcon,
   UserIcon,
   UsersIcon,
   VolleyballIcon,
@@ -54,6 +55,11 @@ const NAV_ITEMS = [
     href: '/admin/courts',
     label: 'Canchas',
     icon: LandPlotIcon,
+  },
+  {
+    href: '/admin/settings',
+    label: 'Configuración',
+    icon: SettingsIcon,
   },
 ] as const;
 

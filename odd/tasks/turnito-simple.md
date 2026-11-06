@@ -16,6 +16,7 @@ Delegated direct, single writer. Trigger evidence: 2+ non-trivial files, broad m
 - [x] T4 Copy + trim web
 - [x] T5 Web typecheck, lint, build green
 - [x] T6 README
+- [x] T7 Settings page (complex data + bank details)
 
 ## Decisions
 - Prisma: models Complex, Court, User, Customer, Booking, Payment, PaymentProof; BookingSource = PLAYER | ADMIN | PUBLIC.
@@ -40,3 +41,16 @@ Delegated direct, single writer. Trigger evidence: 2+ non-trivial files, broad m
 - Smoke test: built API served login, bookings list and the public complex endpoint on port 3011.
 - Not done: browser-level check of the web UI (no Playwright run), so the new booking dialog is verified by
   typecheck/lint/build only.
+
+## T7 Settings (bank details)
+- Ported minimal `admin-settings` (api, hooks, schemas, form-errors, BankDetailsForm, ComplexSettingsForm with name and
+  address only, SettingsPage), route `/admin/settings` and a "Configuración" item in AdminShell. Appearance,
+  notifications, social, logo, cancellation window and auto-confirm were skipped (cut features).
+- API needed no change: `PATCH /admin/complex` is ADMIN-only and already validates `bankCbu` (22 digits), `bankAlias`
+  (6-20 chars) and `bankHolderName` (max 100); `test/e2e/admin-complex.e2e-spec.ts` already covers them.
+- Saving writes and invalidates the `['complex']` query, which the payment link card reads.
+- Evidence: web `tsc --noEmit` clean, `pnpm lint` clean, `pnpm build` ok (`/admin/settings` listed).
+- Browser check (Playwright from the npx cache, Chromium): logged in, saved CBU/alias/holder on /admin/settings
+  (toast shown), API returned the values, the booking detail no longer shows the "missing bank data" warning and the
+  public payment page showed CBU, alias and holder. The dev server already running on :3000 pointed at :3001 (not this
+  project's API), so browser calls were rerouted to this project's API on :3011 with Playwright request routing.
