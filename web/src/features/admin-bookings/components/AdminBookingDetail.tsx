@@ -1,6 +1,15 @@
 'use client';
 
-import { ClockIcon, Loader2Icon, PhoneIcon } from 'lucide-react';
+import {
+  BanknoteIcon,
+  CalendarIcon,
+  ClockIcon,
+  Loader2Icon,
+  MapPinIcon,
+  PhoneIcon,
+  UserIcon,
+} from 'lucide-react';
+import type { ComponentType, ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { errorMessage } from '@/lib/api/errors';
@@ -61,6 +70,32 @@ import {
 import { AdminCancelDialog, type CancelTarget } from './AdminCancelDialog';
 import { TurnActionButton } from './TurnActionButton';
 import { TurnTimer } from './TurnTimer';
+
+/** Tarjeta de resumen: responde una sola pregunta (cuándo/dónde/quién/cuánto). */
+function SummaryCard({
+  icon: Icon,
+  label,
+  badge,
+  children,
+}: {
+  icon: ComponentType<{ className?: string }>;
+  label: string;
+  badge?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <Card>
+      <CardContent className="flex flex-col gap-1.5">
+        <div className="text-muted-foreground flex items-center gap-2 text-xs font-medium tracking-wide uppercase">
+          <Icon className="size-4" />
+          {label}
+          {badge}
+        </div>
+        {children}
+      </CardContent>
+    </Card>
+  );
+}
 
 /** Detalle de una reserva para el admin (docs/07-admin-bookings.md › Detalle). */
 export function AdminBookingDetail({ id }: { id: string }) {
@@ -157,13 +192,6 @@ export function AdminBookingDetail({ id }: { id: string }) {
           timezone={tz}
           label="long"
         />
-        {(b.status !== 'CANCELLED' || b.payment.paidAmount > 0) && (
-          <PaymentStatusBadge
-            payment={b.payment}
-            price={b.price}
-            className="h-6 px-3 text-sm"
-          />
-        )}
       </div>
 
       {pending && (
@@ -196,35 +224,83 @@ export function AdminBookingDetail({ id }: { id: string }) {
         </Alert>
       )}
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <SummaryCard icon={CalendarIcon} label="Cuándo">
+          <p className="text-lg font-semibold capitalize">
+            {formatBookingDate(b.startsAt, tz)}
+          </p>
+          <p className="text-muted-foreground text-sm">
+            {formatTimeRange(b.startsAt, b.endsAt, tz)} ·{' '}
+            {durationMinutes(b.startsAt, b.endsAt)} min
+          </p>
+        </SummaryCard>
+
+        <SummaryCard icon={MapPinIcon} label="Dónde">
+          <Link
+            href={`/admin/courts/${b.courtId}`}
+            className="text-lg font-semibold hover:underline"
+          >
+            {b.court.name}
+          </Link>
+          <div>
+            <Badge variant="outline">{SPORT_LABELS[b.court.sport]}</Badge>
+          </div>
+        </SummaryCard>
+
+        <SummaryCard
+          icon={UserIcon}
+          label="Quién"
+          badge={
+            customer && !customer.isActive ? (
+              <Badge variant="secondary">Archivado</Badge>
+            ) : null
+          }
+        >
+          {!customer ? (
+            <p className="text-muted-foreground text-sm">Sin cliente</p>
+          ) : (
+            <>
+              <p className="text-lg font-semibold">{customer.name}</p>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                {customer.phone ? (
+                  <a
+                    href={`tel:${customer.phone}`}
+                    className="text-primary flex items-center gap-1.5 hover:underline"
+                  >
+                    <PhoneIcon className="size-4" />
+                    {customer.phone}
+                  </a>
+                ) : (
+                  <span className="text-muted-foreground">Sin teléfono</span>
+                )}
+                <Link
+                  href={`/admin/customers/${customer.id}`}
+                  className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                >
+                  Ver ficha
+                </Link>
+              </div>
+            </>
+          )}
+        </SummaryCard>
+
+        <SummaryCard icon={BanknoteIcon} label="Cuánto">
+          <p className="text-lg font-semibold">{formatPrice(b.price)}</p>
+          {(b.status !== 'CANCELLED' || b.payment.paidAmount > 0) && (
+            <div>
+              <PaymentStatusBadge payment={b.payment} price={b.price} />
+            </div>
+          )}
+        </SummaryCard>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Turno</CardTitle>
+            <CardTitle>Historial</CardTitle>
           </CardHeader>
           <CardContent>
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Cancha</dt>
-              <dd className="flex flex-wrap items-center gap-2 font-medium">
-                <Link
-                  href={`/admin/courts/${b.courtId}`}
-                  className="hover:underline"
-                >
-                  {b.court.name}
-                </Link>
-                <Badge variant="outline">{SPORT_LABELS[b.court.sport]}</Badge>
-              </dd>
-              <dt className="text-muted-foreground">Fecha</dt>
-              <dd className="font-medium">
-                {formatBookingDate(b.startsAt, tz)}
-              </dd>
-              <dt className="text-muted-foreground">Horario</dt>
-              <dd className="font-medium">
-                {formatTimeRange(b.startsAt, b.endsAt, tz)}
-              </dd>
-              <dt className="text-muted-foreground">Duración</dt>
-              <dd>{durationMinutes(b.startsAt, b.endsAt)} min</dd>
-              <dt className="text-muted-foreground">Precio</dt>
-              <dd className="font-medium">{formatPrice(b.price)}</dd>
               <dt className="text-muted-foreground">Origen</dt>
               <dd>
                 <Badge variant="outline">
@@ -267,45 +343,6 @@ export function AdminBookingDetail({ id }: { id: string }) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              Cliente
-              {customer && !customer.isActive && (
-                <Badge variant="secondary">Archivado</Badge>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {!customer ? (
-              <p className="text-muted-foreground">Sin cliente</p>
-            ) : (
-              <>
-                <p className="text-base font-medium">{customer.name}</p>
-                {customer.phone ? (
-                  <a
-                    href={`tel:${customer.phone}`}
-                    className="text-primary flex w-fit items-center gap-2 hover:underline"
-                  >
-                    <PhoneIcon className="size-4" />
-                    {customer.phone}
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">Sin teléfono</span>
-                )}
-                <ButtonLink
-                  href={`/admin/customers/${customer.id}`}
-                  variant="outline"
-                  size="sm"
-                  className="w-fit"
-                >
-                  Ver ficha
-                </ButtonLink>
-              </>
-            )}
-          </CardContent>
-        </Card>
-
         {b.note && (
           <Card>
             <CardHeader>
@@ -328,13 +365,6 @@ export function AdminBookingDetail({ id }: { id: string }) {
           </Card>
         )}
 
-        <PaymentsCard
-          booking={b}
-          timezone={tz}
-          onRegister={() => setPaymentTarget(toPaymentTarget(b))}
-          onVoid={(payment) => setVoidTarget({ bookingId: b.id, payment })}
-        />
-
         {b.status !== 'CANCELLED' && (
           <PaymentLinkCard
             bookingId={b.id}
@@ -348,6 +378,14 @@ export function AdminBookingDetail({ id }: { id: string }) {
             )}
           />
         )}
+
+        <PaymentsCard
+          booking={b}
+          timezone={tz}
+          onRegister={() => setPaymentTarget(toPaymentTarget(b))}
+          onVoid={(payment) => setVoidTarget({ bookingId: b.id, payment })}
+        />
+
       </div>
 
       {canAdminCancel(b) && (
