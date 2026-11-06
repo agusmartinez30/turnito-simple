@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   BookingStatus,
   Complex,
@@ -17,6 +17,7 @@ import {
 } from '../storage/payment-proof-type';
 import { STORAGE_PROVIDER_TOKEN } from '../storage/providers/storage-provider.interface';
 import type { IStorageProvider } from '../storage/providers/storage-provider.interface';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { CreatePaymentProofDto } from './dto/create-payment-proof.dto';
 
 export const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
@@ -85,6 +86,7 @@ export class PublicPaymentService {
     private readonly prisma: PrismaService,
     @Inject(STORAGE_PROVIDER_TOKEN)
     private readonly storage: IStorageProvider,
+    @Optional() private readonly realtime?: RealtimeEmitter,
   ) {}
 
   async view(
@@ -159,6 +161,11 @@ export class PublicPaymentService {
       await this.removeQuietly(key);
       throw error;
     }
+    this.realtime?.paymentChanged({
+      complexId: complex.id,
+      bookingId,
+      kind: 'proof_submitted',
+    });
     return this.view(complex, bookingId);
   }
 

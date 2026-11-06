@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import {
   BookingSource,
   BookingStatus,
@@ -29,6 +29,7 @@ import {
   todayInTz,
 } from '../../shared/time/tz';
 import { ComplexService } from '../complex/complex.service';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { ListPaymentsDto } from './dto/list-payments.dto';
 import { RegisterPaymentDto } from './dto/register-payment.dto';
 
@@ -59,6 +60,7 @@ export class AdminPaymentsService {
     private readonly prisma: PrismaService,
     private readonly complex: ComplexService,
     private readonly clock: Clock,
+    @Optional() private readonly realtime?: RealtimeEmitter,
   ) {}
 
   /**
@@ -207,6 +209,11 @@ export class AdminPaymentsService {
     dto: RegisterPaymentDto,
   ): Promise<BookingWithPayments> {
     await this.createPayment(this.prisma, complexId, adminId, bookingId, dto);
+    this.realtime?.paymentChanged({
+      complexId,
+      bookingId,
+      kind: 'payment_registered',
+    });
     return this.reloadDetail(bookingId);
   }
 
@@ -289,6 +296,11 @@ export class AdminPaymentsService {
       );
     }
 
+    this.realtime?.paymentChanged({
+      complexId,
+      bookingId,
+      kind: 'payment_voided',
+    });
     return this.reloadDetail(bookingId);
   }
 

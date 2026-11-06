@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { PaymentMethod, PaymentProofStatus } from '@prisma/client';
 import { AppException } from '../../common/errors/app.exception';
 import { ErrorCode } from '../../common/errors/error-codes';
@@ -7,6 +7,7 @@ import { computePaymentSummary } from '../../shared/payments/payment-summary';
 import { Clock } from '../../shared/time/clock';
 import { STORAGE_PROVIDER_TOKEN } from '../storage/providers/storage-provider.interface';
 import type { IStorageProvider } from '../storage/providers/storage-provider.interface';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { AdminPaymentsService } from './admin-payments.service';
 
 /** Receipts are private; the signed URL lives only as long as the viewer needs it. */
@@ -67,6 +68,7 @@ export class AdminPaymentProofsService {
     private readonly clock: Clock,
     @Inject(STORAGE_PROVIDER_TOKEN)
     private readonly storage: IStorageProvider,
+    @Optional() private readonly realtime?: RealtimeEmitter,
   ) {}
 
   async list(
@@ -152,6 +154,11 @@ export class AdminPaymentProofsService {
       });
       return tx.paymentProof.findUniqueOrThrow({ where: { id: proofId } });
     });
+    this.realtime?.paymentChanged({
+      complexId,
+      bookingId,
+      kind: 'proof_approved',
+    });
     return toResponse(updated);
   }
 
@@ -176,6 +183,11 @@ export class AdminPaymentProofsService {
     });
     if (count === 0) this.throwNotPending();
 
+    this.realtime?.paymentChanged({
+      complexId,
+      bookingId,
+      kind: 'proof_rejected',
+    });
     return toResponse(
       await this.prisma.paymentProof.findUniqueOrThrow({
         where: { id: proofId },
