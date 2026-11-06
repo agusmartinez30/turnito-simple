@@ -74,9 +74,9 @@ model Complex {
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  courts      Court[]
-  users       User[]
-  customers   Customer[]
+  courts    Court[]
+  users     User[]
+  customers Customer[]
 
   @@map("complexes")
 }
@@ -98,8 +98,8 @@ model Court {
   createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  complex           Complex            @relation(fields: [complexId], references: [id])
-  bookings          Booking[]
+  complex  Complex   @relation(fields: [complexId], references: [id])
+  bookings Booking[]
 
   @@unique([complexId, name])
   @@index([complexId, isActive, sport])
@@ -117,16 +117,16 @@ model User {
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  complex                      Complex?            @relation(fields: [complexId], references: [id], onDelete: Restrict)
-  createdCustomers             Customer[]          @relation("customerCreatedBy")
-  createdBookings              Booking[]           @relation("bookingCreatedBy")
-  cancelledBookings            Booking[]           @relation("bookingCancelledBy")
-  confirmedBookings            Booking[]           @relation("bookingConfirmedBy")
-  startedBookings              Booking[]           @relation("bookingStartedBy")
-  finishedBookings             Booking[]           @relation("bookingFinishedBy")
-  registeredPayments           Payment[]           @relation("paymentRegisteredBy")
-  voidedPayments               Payment[]           @relation("paymentVoidedBy")
-  reviewedPaymentProofs        PaymentProof[]      @relation("paymentProofReviewedBy")
+  complex               Complex?       @relation(fields: [complexId], references: [id], onDelete: Restrict)
+  createdCustomers      Customer[]     @relation("customerCreatedBy")
+  createdBookings       Booking[]      @relation("bookingCreatedBy")
+  cancelledBookings     Booking[]      @relation("bookingCancelledBy")
+  confirmedBookings     Booking[]      @relation("bookingConfirmedBy")
+  startedBookings       Booking[]      @relation("bookingStartedBy")
+  finishedBookings      Booking[]      @relation("bookingFinishedBy")
+  registeredPayments    Payment[]      @relation("paymentRegisteredBy")
+  voidedPayments        Payment[]      @relation("paymentVoidedBy")
+  reviewedPaymentProofs PaymentProof[] @relation("paymentProofReviewedBy")
 
   @@index([complexId])
   @@map("users")
@@ -147,9 +147,9 @@ model Customer {
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  complex               Complex                @relation(fields: [complexId], references: [id], onDelete: Restrict)
-  createdBy             User?                  @relation("customerCreatedBy", fields: [createdById], references: [id])
-  bookings              Booking[]
+  complex   Complex   @relation(fields: [complexId], references: [id], onDelete: Restrict)
+  createdBy User?     @relation("customerCreatedBy", fields: [createdById], references: [id])
+  bookings  Booking[]
 
   // Postgres usa NULLS DISTINCT: varios clientes sin teléfono conviven en el mismo complejo.
   @@unique([complexId, phone])
@@ -180,15 +180,15 @@ model Booking {
   finishedAt         DateTime?     @map("finished_at") @db.Timestamptz(3) // fin manual del turno: congela el cronómetro
   finishedById       String?       @map("finished_by_id")
 
-  court           Court             @relation(fields: [courtId], references: [id])
-  customer        Customer?         @relation(fields: [customerId], references: [id], onDelete: Restrict)
-  createdBy       User?             @relation("bookingCreatedBy", fields: [createdById], references: [id])
-  cancelledBy     User?             @relation("bookingCancelledBy", fields: [cancelledById], references: [id])
-  confirmedBy     User?             @relation("bookingConfirmedBy", fields: [confirmedById], references: [id])
-  startedBy       User?             @relation("bookingStartedBy", fields: [startedById], references: [id])
-  finishedBy      User?             @relation("bookingFinishedBy", fields: [finishedById], references: [id])
-  payments        Payment[]
-  paymentProofs   PaymentProof[]
+  court         Court          @relation(fields: [courtId], references: [id])
+  customer      Customer?      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  createdBy     User?          @relation("bookingCreatedBy", fields: [createdById], references: [id])
+  cancelledBy   User?          @relation("bookingCancelledBy", fields: [cancelledById], references: [id])
+  confirmedBy   User?          @relation("bookingConfirmedBy", fields: [confirmedById], references: [id])
+  startedBy     User?          @relation("bookingStartedBy", fields: [startedById], references: [id])
+  finishedBy    User?          @relation("bookingFinishedBy", fields: [finishedById], references: [id])
+  payments      Payment[]
+  paymentProofs PaymentProof[]
 
   @@index([customerId, startsAt])
   @@index([courtId, startsAt])
@@ -203,15 +203,18 @@ model Payment {
   amount         Int // moneda local, entero, > 0 (CHECK)
   method         PaymentMethod
   note           String? // texto libre, ej. quién pagó
+  payerName      String?       @map("payer_name") // quien transfirió (viene del comprobante aprobado)
+  proofId        String?       @unique @map("proof_id") // comprobante que originó este pago, si lo hay
   registeredById String        @map("registered_by_id") // admin que lo cargó
   createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
   voidedAt       DateTime?     @map("voided_at") @db.Timestamptz(3) // null = vigente
   voidedById     String?       @map("voided_by_id")
   voidReason     String?       @map("void_reason")
 
-  booking      Booking @relation(fields: [bookingId], references: [id])
-  registeredBy User    @relation("paymentRegisteredBy", fields: [registeredById], references: [id])
-  voidedBy     User?   @relation("paymentVoidedBy", fields: [voidedById], references: [id])
+  booking      Booking       @relation(fields: [bookingId], references: [id])
+  registeredBy User          @relation("paymentRegisteredBy", fields: [registeredById], references: [id])
+  voidedBy     User?         @relation("paymentVoidedBy", fields: [voidedById], references: [id])
+  proof        PaymentProof? @relation(fields: [proofId], references: [id])
 
   @@index([bookingId])
   @@index([createdAt]) // caja: pagos por rango de fecha de registro
@@ -235,8 +238,9 @@ model PaymentProof {
   reviewedById   String?            @map("reviewed_by_id")
   rejectReason   String?            @map("reject_reason")
 
-  booking    Booking @relation(fields: [bookingId], references: [id])
-  reviewedBy User?   @relation("paymentProofReviewedBy", fields: [reviewedById], references: [id])
+  booking    Booking  @relation(fields: [bookingId], references: [id])
+  reviewedBy User?    @relation("paymentProofReviewedBy", fields: [reviewedById], references: [id])
+  payment    Payment?
 
   @@index([bookingId])
   @@index([status])

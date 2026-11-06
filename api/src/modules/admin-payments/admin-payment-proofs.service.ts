@@ -147,6 +147,8 @@ export class AdminPaymentProofsService {
         amount: approvedAmount,
         method: PaymentMethod.TRANSFER,
         note: ADMIN_PROOF_MESSAGES.approvedNote,
+        payerName: proof.payerName,
+        proofId: proof.id,
       });
       return tx.paymentProof.findUniqueOrThrow({ where: { id: proofId } });
     });

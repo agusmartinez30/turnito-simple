@@ -99,6 +99,8 @@ describe('AdminPaymentsService', () => {
           amount: 2000,
           method: 'CASH',
           note: null,
+          payerName: null,
+          proofId: null,
           registeredById: ADMIN,
           createdAt: NOW,
         },

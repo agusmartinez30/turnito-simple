@@ -219,7 +219,13 @@ export class AdminPaymentsService {
     complexId: string,
     adminId: string,
     bookingId: string,
-    data: { amount: number; method: PaymentMethod; note?: string },
+    data: {
+      amount: number;
+      method: PaymentMethod;
+      note?: string;
+      payerName?: string;
+      proofId?: string;
+    },
   ): Promise<void> {
     const booking = await this.findBookingOrThrow(db, complexId, bookingId);
     if (booking.status === BookingStatus.CANCELLED) {
@@ -235,6 +241,8 @@ export class AdminPaymentsService {
         amount: data.amount,
         method: data.method,
         note: data.note ?? null,
+        payerName: data.payerName ?? null,
+        proofId: data.proofId ?? null,
         registeredById: adminId,
         createdAt: this.clock.now(),
       },

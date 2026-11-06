@@ -128,7 +128,12 @@ describe('AdminPaymentProofsService', () => {
       COMPLEX,
       ADMIN,
       BOOKING,
-      expect.objectContaining({ amount: 2500, method: 'TRANSFER' }),
+      expect.objectContaining({
+        amount: 2500,
+        method: 'TRANSFER',
+        payerName: proofRow().payerName,
+        proofId: PROOF,
+      }),
     );
     expect(result.status).toBe('APPROVED');
   });

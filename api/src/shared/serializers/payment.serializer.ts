@@ -18,6 +18,8 @@ export interface PaymentResponse {
   amount: number;
   method: PaymentMethod;
   note?: string;
+  payerName?: string; // quien transfirió
+  proofId?: string; // comprobante de origen (permite "Ver comprobante")
   createdAt: string; // ISO con offset del complejo
   registeredBy: { id: string; name: string };
   voidedAt?: string;
@@ -34,6 +36,8 @@ export function toPaymentResponse(
     amount: payment.amount,
     method: payment.method,
     ...(payment.note ? { note: payment.note } : {}),
+    ...(payment.payerName ? { payerName: payment.payerName } : {}),
+    ...(payment.proofId ? { proofId: payment.proofId } : {}),
     createdAt: toComplexIso(payment.createdAt, timezone),
     registeredBy: {
       id: payment.registeredBy.id,

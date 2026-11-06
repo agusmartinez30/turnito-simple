@@ -59,6 +59,8 @@ export interface Payment {
   amount: number;
   method: PaymentMethod;
   note?: string;
+  payerName?: string;
+  proofId?: string;
   createdAt: string;
   registeredBy: { id: string; name: string };
   voidedAt?: string;

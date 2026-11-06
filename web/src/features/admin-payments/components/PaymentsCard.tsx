@@ -1,6 +1,6 @@
 'use client';
 
-import { BanIcon, PlusIcon } from 'lucide-react';
+import { BanIcon, FileSearchIcon, Loader2Icon, PlusIcon } from 'lucide-react';
 import { useState } from 'react';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
 import { Badge } from '@/components/ui/badge';
@@ -161,6 +161,9 @@ export function PaymentsCard({ booking, timezone, onRegister, onVoid }: Props) {
                           {p.voidedAt && (
                             <Badge variant="outline">Anulado</Badge>
                           )}
+                          {p.payerName && (
+                            <span className="truncate">{p.payerName}</span>
+                          )}
                           {p.note && (
                             <span className="text-muted-foreground truncate">
                               {p.note}
@@ -181,6 +184,23 @@ export function PaymentsCard({ booking, timezone, onRegister, onVoid }: Props) {
                         {formatPrice(p.amount)}
                       </span>
                     </div>
+                    {p.proofId && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-fit"
+                        disabled={openingId === p.proofId}
+                        onClick={() => open(booking.id, p.proofId!)}
+                      >
+                        {openingId === p.proofId ? (
+                          <Loader2Icon className="animate-spin" />
+                        ) : (
+                          <FileSearchIcon />
+                        )}
+                        Ver comprobante
+                      </Button>
+                    )}
                     {p.voidedAt ? (
                       <span className="text-muted-foreground text-xs">
                         Anulado{p.voidedBy && ` por ${p.voidedBy.name}`} el{' '}
