@@ -18,7 +18,7 @@ Players scan a QR at the venue, pick the booking they played, see booking + bank
 
 ## Tasks
 - [x] T1 API: `GET /public/c/:slug/bookings` (today+yesterday in complex tz, not cancelled; id, court name/sport, startsAt/endsAt, customer name, payment summary) + unit/e2e tests. Route: delegated (2+ non-trivial files).
-- [ ] T2 Web: QR landing `web/src/app/(open)/app/[slug]/page.tsx` listing bookings as cards linking to `pagar/[id]`. Route: delegated.
+- [x] T2 Web: QR landing `web/src/app/(open)/app/[slug]/page.tsx` listing bookings as cards linking to `pagar/[id]`. Route: delegated.
 - [ ] T3 Web admin: QR for `${origin}/app/${slug}` (download/print) near settings or PaymentLinkCard. Needs a QR lib. Route: delegated.
 - [ ] T4 Docs: api/docs + web/docs updates.
 - [ ] T5 (optional, needs confirmation) Accept image proofs (screenshots).
@@ -27,4 +27,4 @@ Players scan a QR at the venue, pick the booking they played, see booking + bank
 (explorer handoff: payment page, proof upload, admin review already exist; missing = QR landing, public list, QR generation)
 
 ## Next step
-Delegate T2 (web QR landing). T1 evidence: unit 4/4, e2e public-bookings + full suites green (254 unit, 191 e2e), tsc/eslint clean. Choice: CONFIRMED bookings only.
+Delegate T3 (admin QR). T2 evidence: tsc/eslint/prettier clean, next build OK, not exercised in a browser. T1 evidence: unit 4/4, e2e public-bookings + full suites green (254 unit, 191 e2e), tsc/eslint clean. Choice: CONFIRMED bookings only.
