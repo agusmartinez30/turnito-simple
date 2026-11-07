@@ -84,7 +84,7 @@ Tras guardar: toast "Cliente creado" / "Cambios guardados", `router.push('/admin
 
 Si tiene turnos fijos activos, debajo: "Tiene {N} turno(s) fijo(s) activo(s)" con link a `/admin/recurring`.
 
-**Card "Turnos"** — los últimos 20, más recientes primero: fecha y hora, cancha, estado, precio y estado de pago. Cada fila linkea a `/admin/bookings/[id]`. Al pie, "Ver todos sus turnos" → `/admin/bookings?q=<teléfono o nombre>`.
+**Card "Turnos"** — los últimos 20, más recientes primero: fecha y hora, cancha, estado, precio y estado de pago. Cada fila linkea a `/admin/bookings/[id]`. Al pie, "Ver todos sus turnos" → `/admin/customers/[id]` (la lista completa vive en la ficha; ya no hay listado global de reservas).
 
 **Archivar** → `AlertDialog`: "¿Archivar a {nombre}? Deja de aparecer en el buscador y al cargar turnos. Sus turnos, pagos y turnos fijos se conservan tal cual." / "Sí, archivar". Si tiene turnos futuros o un turno fijo activo, el diálogo lo advierte pero **no** lo bloquea. Restaurar no pide confirmación.
 

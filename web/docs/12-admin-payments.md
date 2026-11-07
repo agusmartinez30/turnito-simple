@@ -28,7 +28,6 @@ Además, los pagos por turno viven dentro de pantallas existentes:
 |---|---|
 | `/admin/bookings/[id]` (detalle) | Card **"Pagos"** con totales, historial y acciones; badge de estado de pago junto al de estado de reserva. |
 | `/admin/agenda` | En `AgendaSlotDetail`: pagado / restante + botón **"Registrar pago"**. En la celda: punto de color según estado de pago. |
-| `/admin/bookings` (listado) | Columna **"Pago"** con badge; acción "Registrar pago" en el menú de la fila. |
 | `/admin` (dashboard) | La card "Ingresos confirmados" muestra debajo "cobrado: $…". |
 
 ## UI
@@ -108,7 +107,7 @@ Tras aprobar o rechazar (y también ante error) se invalidan los comprobantes de
 
 ### `/admin/payments` — Pagos (`PaymentsLedger`)
 
-Sidebar (`AdminShell`): ítem **Pagos** (`/admin/payments`, ícono `Banknote`) después de Reservas; también aparece en el drawer lateral mobile.
+Sidebar (`AdminShell`): ítem **Pagos** (`/admin/payments`, ícono `Banknote`) después de Agenda; también aparece en el drawer lateral mobile.
 
 `PageHeader` "Pagos". Debajo, en orden:
 

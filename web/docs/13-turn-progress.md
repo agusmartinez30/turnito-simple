@@ -116,9 +116,9 @@ Sin keys nuevas. `useAdminStartBooking` y `useAdminFinishBooking` (`features/adm
 7. [ ] Con un turno en curso al que le faltan ~20 s (`UPDATE bookings SET started_at = now() - (ends_at - starts_at) + interval '20 seconds'`), esperar mirando el dashboard: al pasar a "Terminado" aparece el banner rojo arriba "Terminó el turno de … · …" y suena el loop (dos bips por segundo). "Apagar alarma" → se van banner y sonido; el chip sigue "Terminado" y no vuelve a sonar.
 8. [ ] Con ese turno ya terminado, recargar (o ir a `/admin/agenda` y volver): card roja pero **sin** banner ni sonido.
 9. [ ] Silenciar con el parlante y recargar: sigue silenciado. Provocar otro fin de turno → banner con "Sonido silenciado en este dispositivo." y sin audio; reactivar → bip corto; togglear en otra pestaña actualiza la primera.
-10. [ ] Con el banner sonando, "Finalizar" ese turno desde la card → el turno sale del panel y la alarma se apaga sola. Con dos turnos terminando con segundos de diferencia: un solo banner "Terminaron 2 turnos"; finalizar uno deja al otro; "Apagar alarma" apaga el resto. Ir a `/admin/bookings` con la alarma sonando → se apaga; el detalle de un turno terminado nunca suena.
+10. [ ] Con el banner sonando, "Finalizar" ese turno desde la card → el turno sale del panel y la alarma se apaga sola. Con dos turnos terminando con segundos de diferencia: un solo banner "Terminaron 2 turnos"; finalizar uno deja al otro; "Apagar alarma" apaga el resto. Ir a `/admin/agenda` con la alarma sonando → se apaga; el detalle de un turno terminado nunca suena.
 
 ## Fuera de alcance
 
-- Reiniciar un turno finalizado, acciones de turno en `/admin/bookings`, tiempo extra facturable.
+- Reiniciar un turno finalizado, acciones de turno en la agenda, tiempo extra facturable.
 - Alarma fuera del dashboard (detalle, otras páginas, pestaña cerrada o pantalla bloqueada), notificaciones push, volumen o sonido configurable, preferencia de sonido por usuario en la API.

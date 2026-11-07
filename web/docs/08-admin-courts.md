@@ -38,7 +38,7 @@ Que el administrador administre el catálogo de canchas sin tocar el seed ni la 
 | Horario | "08:00 – 23:00 · 90 min" |
 | Precio | "$ 12.000" |
 | Estado | `Switch` activa / inactiva (ver reglas) + badge "Inactiva" si corresponde |
-| Reservas futuras | número (`futureBookingsCount`); si `> 0`, link a `/admin/bookings?courtId=…&status=CONFIRMED` |
+| Reservas futuras | número (`futureBookingsCount`); si `> 0`, link a `/admin/agenda` |
 | Acciones | "Editar" → `/admin/courts/[id]` |
 
 Orden: `sortOrder asc, name asc`. Las inactivas se muestran al final con opacidad reducida (`Tabs` "Todas" / "Activas" / "Inactivas", default "Todas").
@@ -123,7 +123,7 @@ export const courtSchema = z
 - **Nombre único** por complejo (case-sensitive, tal como está en DB) → `409 COURT_NAME_ALREADY_EXISTS`.
 - **Precio**: cambiarlo no afecta reservas existentes (`price` es snapshot). Aplica a reservas nuevas desde el momento del cambio.
 - **Horario / duración**: solo se pueden cambiar si la cancha **no tiene reservas `CONFIRMED` con `startsAt >= now`** → si tiene, `409 COURT_HAS_FUTURE_BOOKINGS`. Razón: una reserva que no coincide con la nueva grilla quedaría invisible en la agenda y podría solaparse con una nueva.
-- **Desactivar**: misma condición → `409 COURT_HAS_FUTURE_BOOKINGS`. Las reservas pasadas se conservan y se siguen viendo en `/admin/bookings` y en el historial del jugador.
+- **Desactivar**: misma condición → `409 COURT_HAS_FUTURE_BOOKINGS`. Las reservas pasadas se conservan y se siguen viendo en la agenda (`/admin/agenda`) y en el historial del jugador.
 - **Reactivar**: siempre permitido.
 - **No hay borrado.** Una cancha con historial no se elimina; se desactiva.
 - Cambiar `sortOrder` no reordena a las demás; dos canchas pueden compartir número (desempata `name asc`).

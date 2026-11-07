@@ -45,7 +45,7 @@ interface Props {
 
 /**
  * Cancelación del admin, sin ventana de anticipación, con motivo opcional
- * (docs/07-admin-bookings.md › AdminCancelDialog). Compartido por agenda, listado y detalle.
+ * (docs/07-admin-bookings.md › AdminCancelDialog). Compartido por el detalle y otras pantallas del admin.
  */
 export function AdminCancelDialog({
   target,
