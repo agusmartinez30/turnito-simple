@@ -25,7 +25,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { ComplexTheme } from '@/components/layout/ComplexTheme';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePendingCount } from '@/features/admin-bookings/hooks';
@@ -175,7 +174,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
     APP_NAME
   );
 
-  /** Logo del complejo, o el ícono de siempre (docs/19-branding.md). Va en los tres headers. */
+  /** Logo del complejo, o el ícono de siempre. Va en los tres headers. */
   const mark = (
     <ComplexMark
       logoUrl={complex.data?.logoUrl}
@@ -191,10 +190,6 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-1">
-      <ComplexTheme
-        primaryColor={complex.data?.primaryColor}
-        secondaryColor={complex.data?.secondaryColor}
-      />
       {/* Sidebar (lg+) */}
       <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-svh w-60 shrink-0 flex-col lg:flex">
         <div className="border-sidebar-border flex h-14 items-center border-b pr-2">

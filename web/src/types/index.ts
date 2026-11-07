@@ -17,10 +17,7 @@ export interface Complex {
   youtubeUrl: string | null;
   /** WhatsApp público de contacto, '+' + dígitos: botón "Inscribirme" de los torneos. */
   contactWhatsapp: string | null;
-  /** Hex #rrggbb. null = paleta Clubix (lib/theme.ts, docs/19-branding.md). */
-  primaryColor: string | null;
-  secondaryColor: string | null;
-  /** URL pública del logo. Solo lectura: se cambia subiendo un archivo (docs/19-branding.md). */
+  /** URL pública del logo. Solo lectura: se cambia subiendo un archivo. */
   logoUrl: string | null;
   /** Datos bancarios para transferencias (solo en las respuestas de admin). */
   bankCbu: string | null;
@@ -152,7 +149,5 @@ export type PublicComplex = Pick<
   | 'tiktokUrl'
   | 'youtubeUrl'
   | 'contactWhatsapp'
-  | 'primaryColor'
-  | 'secondaryColor'
   | 'logoUrl'
 >;

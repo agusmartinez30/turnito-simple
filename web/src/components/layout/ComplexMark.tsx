@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 /**
- * Marca del complejo (docs/19-branding.md): su logo si lo subió, si no el ícono genérico de esa
+ * Marca del complejo: su logo si lo subió, si no el ícono genérico de esa
  * superficie. Es la misma cadena que ya usa el nombre del complejo al lado — `Skeleton` mientras
  * carga, valor propio, fallback — así que el header no parpadea más de lo que ya parpadeaba.
  *
