@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowRightIcon, ClockIcon, UserIcon } from 'lucide-react';
+import { ArrowRightIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
@@ -21,6 +21,7 @@ import { SPORT_LABELS, isSport } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { usePublicBookings } from '../hooks';
 import { groupByDay, type PublicBooking } from '../schemas';
+import { SportCourtIcon } from './SportCourtIcon';
 
 /** /app/[slug]: what the venue QR opens. Players pick their booking to pay it. */
 export function PublicBookingsView() {
@@ -150,10 +151,7 @@ function BookingCard({ booking, tz }: { booking: PublicBooking; tz: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <ClockIcon
-            aria-hidden="true"
-            className="text-muted-foreground mt-0.5 size-5 shrink-0"
-          />
+          <SportCourtIcon sport={booking.court.sport} />
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-lg leading-none font-semibold tabular-nums">
               {formatTimeRange(booking.startsAt, booking.endsAt, tz)}
