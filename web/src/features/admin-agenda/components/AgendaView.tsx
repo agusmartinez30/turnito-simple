@@ -131,11 +131,12 @@ function AgendaContent({ complex }: { complex: Complex }) {
     });
 
   const error = courts.error ?? bookings.error;
+  const longDate = formatLongDate(date);
 
   return (
     <>
       <PageHeader
-        title="Agenda"
+        title={longDate.charAt(0).toUpperCase() + longDate.slice(1)}
         action={
           <Button onClick={() => setTarget({})}>
             <PlusIcon data-icon="inline-start" />
@@ -177,9 +178,6 @@ function AgendaContent({ complex }: { complex: Complex }) {
             if (isValidDateParam(e.target.value)) setDate(e.target.value);
           }}
         />
-        <span className="text-muted-foreground text-sm capitalize">
-          {formatLongDate(date)}
-        </span>
       </div>
 
       {activeCourts.length > 1 && (
