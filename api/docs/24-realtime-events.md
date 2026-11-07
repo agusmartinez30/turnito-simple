@@ -46,6 +46,10 @@ Solo viajan ids y el `kind`: **sin PII, montos ni claves de archivos**. `Realtim
 - **Después del commit**: cada servicio llama a `RealtimeEmitter.paymentChanged(...)` recién cuando la operación de DB terminó. Si la operación falla (p. ej. subida rechazada por validación), **no se emite nada**.
 - **Fire-and-forget**: el emitter no espera a la red y atrapa cualquier error (`Logger.warn`); una falla de realtime nunca rompe ni demora el request HTTP. El emitter se inyecta como `@Optional()` en los servicios.
 
+## Evento `notification.created`
+
+Segundo evento del namespace `/admin`, también a la room `complex:<id>`. Se emite al subir un comprobante, después del commit, y **sí lleva datos de display** (`payerName`, `declaredAmount`) porque solo llega a admins autenticados del complejo; nunca claves de archivo. Payload y contexto: [`25-notifications.md`](./25-notifications.md). `payment.changed` sigue siendo solo ids.
+
 ## Limitación: una sola réplica
 
 Las rooms son en memoria del proceso: con varias instancias de la API, un evento emitido en una réplica solo llega a los sockets conectados a esa. Hoy el despliegue es de una réplica. Para escalar a varias hay que sumar el **adaptador Redis de Socket.IO** (`@socket.io/redis-adapter`) y, según el balanceador, sticky sessions o transport solo `websocket`. Mientras tanto el polling de 15 s del front cubre cualquier pérdida.
@@ -54,4 +58,5 @@ Las rooms son en memoria del proceso: con varias instancias de la API, un evento
 
 - `api/src/modules/realtime/realtime.gateway.spec.ts` — auth del handshake (token por `auth`/header, rol, complejo) y rooms.
 - `api/src/modules/realtime/realtime.emitter.spec.ts` — payload reconstruido, no lanza ante errores.
+- `notification.created`: unit en `realtime.emitter.spec.ts` y `realtime.gateway.spec.ts` (sin e2e de socket).
 - `api/test/e2e/realtime-payment-events.e2e-spec.ts` — con `socket.io-client`: handshake (sin token, token inválido, no admin → rechazo; admin ok), aislamiento por complejo con payload solo de ids, no emite si la subida falla, y los `kind` aprobado, rechazado, registrado y anulado.

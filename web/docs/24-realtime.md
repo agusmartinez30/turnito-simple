@@ -12,7 +12,7 @@ Que el detalle de reserva y el listado de pagos del admin se refresquen apenas l
 
 | Archivo | Rol |
 |---|---|
-| `AdminRealtimeProvider.tsx` | Abre **una** conexión Socket.IO y escucha `payment.changed` |
+| `AdminRealtimeProvider.tsx` | Abre **una** conexión Socket.IO y escucha `payment.changed` y `notification.created` |
 | `invalidate-payment-changed.ts` | Traduce el evento a invalidaciones de React Query |
 
 - **Montaje**: `web/src/app/(admin)/layout.tsx` envuelve el contenido con `<AdminRealtimeProvider>` dentro de `AdminGate`, así que solo se conecta un admin ya autenticado.
@@ -37,7 +37,7 @@ Replica lo que ya invalidan las mutaciones de aprobar/confirmar.
 
 ## Toast
 
-En `proof_submitted` se muestra `toast.info('Nuevo comprobante recibido')`, deduplicado **por `bookingId` durante 5 s** (varios eventos seguidos de la misma reserva muestran un solo aviso).
+`payment.changed` **no** muestra toast. El aviso de comprobante nuevo viene de `notification.created` (toast con pagador y monto, deduplicado por `notificationId` durante 5 s), que además refresca la campana. Ver [`25-notifications.md`](./25-notifications.md).
 
 ## Fallback: polling
 
