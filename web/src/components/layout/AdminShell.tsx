@@ -68,13 +68,13 @@ function isActive(pathname: string, item: (typeof NAV_ITEMS)[number]): boolean {
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
 }
 
-/** Foco visible sobre el índigo: el anillo por defecto es índigo y ahí no se vería. */
+/** Foco visible dentro de la navegación (usa el anillo propio de la sidebar). */
 const NAV_FOCUS =
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring';
 
 /**
- * Ítem de la sidebar. El activo se marca con el filete lima + el ícono lima; el relleno
- * índigo claro solo acompaña (docs/05-admin-overview.md › Layout).
+ * Ítem de la sidebar. El activo se marca con el filete y el ícono en `highlight`; el relleno
+ * gris solo acompaña (docs/05-admin-overview.md › Layout).
  */
 function navItemClass(active: boolean): string {
   return cn(
@@ -86,7 +86,7 @@ function navItemClass(active: boolean): string {
   );
 }
 
-/** Menú del usuario: en la sidebar va sobre índigo, en el header mobile sobre el fondo claro. */
+/** Menú del usuario: en la sidebar va sobre la sidebar, en el header mobile sobre el fondo claro. */
 function UserMenu({ onSidebar = false }: { onSidebar?: boolean }) {
   const me = useMe();
   const complex = useComplex();
@@ -147,8 +147,8 @@ function UserMenu({ onSidebar = false }: { onSidebar?: boolean }) {
 
 /**
  * Layout del panel (docs/05-admin-overview.md › Layout): sidebar fija en lg+, header + drawer
- * lateral en pantallas chicas. La navegación es la superficie índigo de la marca: el
- * contenido queda claro. El gate por rol lo hace `(admin)/layout.tsx`.
+ * lateral en pantallas chicas. La navegación es una superficie neutra propia (tokens
+ * `--sidebar-*`). El gate por rol lo hace `(admin)/layout.tsx`.
  */
 export function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

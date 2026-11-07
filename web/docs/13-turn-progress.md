@@ -25,10 +25,10 @@ Sección entre `WeekNav` y `DashboardSummary`, solo cuando la semana mostrada in
 
 Grid de `Card` (`sm:grid-cols-2 lg:grid-cols-3`), cada una con link overlay al detalle.
 
-- **Banda superior** (`RUNNING_BAND_CLASS`): **índigo de marca** (`bg-primary` + `text-primary-foreground`) con la cancha, el badge de deporte (`outline` + `border-current text-current`, para que el filete y la tinta salgan claros sobre el índigo) y el horario pactado a la derecha (`formatTimeRange`, `opacity-80`). Es la única superficie índigo del contenido del panel: marca de un vistazo qué canchas están ocupadas ahora. El índigo va de **relleno con tinta clara**, nunca de tinta sobre la card (ver el comentario de tokens en `globals.css`).
+- **Banda superior** (`RUNNING_BAND_CLASS`): **primario** (negro en claro, blanco en oscuro; `bg-primary` + `text-primary-foreground`) con la cancha, el badge de deporte (`outline` + `border-current text-current`, para que el filete y la tinta salgan claros sobre el primario) y el horario pactado a la derecha (`formatTimeRange`, `opacity-80`). Es la única superficie primaria del contenido del panel: marca de un vistazo qué canchas están ocupadas ahora. El primario va de **relleno con tinta clara**, nunca de tinta sobre la card (ver el comentario de tokens en `globals.css`).
 - **Cuerpo** (claro, zona de lectura densa): cliente, `TurnTimer size="lg"` — el cronómetro sigue siendo el héroe y conserva su verde / rojo de estado —, "de 90 min" y a la derecha el botón **"Finalizar"** (`TurnActionButton`, por encima del overlay).
 - Orden: **terminados primero**, después por más tiempo transcurrido.
-- Card terminada: la banda pasa a rojo sólido (`OVERTIME_BAND_CLASS`) y el cuerpo toma `OVERTIME_CARD_CLASS` (fondo rojo suave + ring). El estado viaja siempre por la banda, en la misma posición: índigo = en curso, rojo = se pasó.
+- Card terminada: la banda pasa a rojo sólido (`OVERTIME_BAND_CLASS`) y el cuerpo toma `OVERTIME_CARD_CLASS` (fondo rojo suave + ring). El estado viaja siempre por la banda, en la misma posición: primario = en curso, rojo = se pasó.
 
 ### `TurnTimer`
 

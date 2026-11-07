@@ -4,7 +4,7 @@ import { APP_NAME } from '@/lib/app-name';
 import { cn } from '@/lib/utils';
 
 interface Props {
-  /** Etiqueta corta en lima sobre la imagen. */
+  /** Etiqueta corta en blanco sobre la imagen. */
   eyebrow: string;
   /** Titular de la imagen (lado izquierdo). */
   title: string;
@@ -36,19 +36,17 @@ export function AuthSplitShell({
           sizes="50vw"
           className="object-cover"
         />
-        <div className="from-sidebar/90 via-sidebar/45 to-sidebar/15 absolute inset-0 bg-linear-to-t" />
-        <div className="text-sidebar-foreground absolute inset-x-0 top-0 flex items-center gap-2 p-8">
+        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/50 to-black/30" />
+        <div className="absolute inset-x-0 top-0 flex items-center gap-2 p-8 text-white">
           <VolleyballIcon className="size-6" />
           <span className="text-lg font-semibold">{APP_NAME}</span>
         </div>
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-8">
-          <p className="text-highlight text-sm font-medium">{eyebrow}</p>
-          <p className="text-sidebar-foreground max-w-md text-3xl font-semibold text-balance">
+          <p className="text-sm font-medium text-white/80">{eyebrow}</p>
+          <p className="max-w-md text-3xl font-semibold text-balance text-white">
             {title}
           </p>
-          <p className="text-sidebar-foreground/75 max-w-md text-sm">
-            {description}
-          </p>
+          <p className="max-w-md text-sm text-white/75">{description}</p>
         </div>
       </aside>
 
