@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import type { Sport } from '@/types';
 
 /**
- * Football = green, padel = blue. Illustration only (never encodes payment state), and
- * kept local to /app so the admin's grayscale SPORT_SURFACE is untouched.
+ * Football = green, padel = blue. Illustration only: it never encodes payment or
+ * booking state (those use the success / warning / destructive tokens).
  * Classes are literal because Tailwind scans the source.
  */
 const SPORT_BG: Record<Sport, string> = {
@@ -42,18 +42,20 @@ function CourtLines({ sport }: { sport: Sport }) {
 /** Small court thumbnail so players tell football and padel bookings apart at a glance. */
 export function SportCourtIcon({
   sport,
+  label,
   className,
 }: {
   sport: string;
+  label?: string;
   className?: string;
 }) {
   if (!isSport(sport)) return null;
   return (
     <span
       role="img"
-      aria-label={SPORT_LABELS[sport]}
+      aria-label={label ?? SPORT_LABELS[sport]}
       className={cn(
-        'flex size-11 shrink-0 items-center justify-center rounded-lg text-white',
+        'flex shrink-0 items-center justify-center text-white',
         SPORT_BG[sport],
         className,
       )}
@@ -66,7 +68,7 @@ export function SportCourtIcon({
         strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="size-7"
+        className="size-[65%]"
       >
         <CourtLines sport={sport} />
       </svg>

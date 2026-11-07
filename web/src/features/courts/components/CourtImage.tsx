@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { SPORT_LABELS } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import type { Sport } from '@/types';
-import { SPORT_SURFACE } from '../sportSurface';
+import { SportCourtIcon } from './SportCourtIcon';
 
 interface Props {
   sport: Sport;
@@ -32,18 +32,11 @@ export function CourtImage({ sport, imageUrl, name, className, sizes }: Props) {
     );
   }
 
-  const { icon: Icon, gradient } = SPORT_SURFACE[sport];
   return (
-    <div
-      role="img"
-      aria-label={`${SPORT_LABELS[sport]} · ${name}`}
-      className={cn(
-        'flex w-full items-center justify-center bg-linear-to-br text-white',
-        gradient,
-        className,
-      )}
-    >
-      <Icon className="size-10 opacity-80" strokeWidth={1.5} />
-    </div>
+    <SportCourtIcon
+      sport={sport}
+      label={`${SPORT_LABELS[sport]} · ${name}`}
+      className={cn('w-full rounded-none', className)}
+    />
   );
 }

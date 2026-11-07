@@ -21,7 +21,7 @@ import { SPORT_LABELS, isSport } from '@/lib/labels';
 import { cn } from '@/lib/utils';
 import { usePublicBookings } from '../hooks';
 import { groupByDay, type PublicBooking } from '../schemas';
-import { SportCourtIcon } from './SportCourtIcon';
+import { SportCourtIcon } from '@/features/courts/components/SportCourtIcon';
 
 /** /app/[slug]: what the venue QR opens. Players pick their booking to pay it. */
 export function PublicBookingsView() {
@@ -151,7 +151,10 @@ function BookingCard({ booking, tz }: { booking: PublicBooking; tz: string }) {
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
-          <SportCourtIcon sport={booking.court.sport} />
+          <SportCourtIcon
+            sport={booking.court.sport}
+            className="size-11 rounded-lg"
+          />
           <div className="flex min-w-0 flex-col gap-1">
             <span className="text-lg leading-none font-semibold tabular-nums">
               {formatTimeRange(booking.startsAt, booking.endsAt, tz)}

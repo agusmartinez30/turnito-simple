@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { NewBookingDialog } from '@/features/admin-bookings/components/NewBookingDialog';
 import { useAdminBookings } from '@/features/admin-bookings/hooks';
 import { useAdminCourts } from '@/features/admin-courts/hooks';
+import { SportCourtIcon } from '@/features/courts/components/SportCourtIcon';
 import { useComplex } from '@/features/complex/hooks';
 import { useNow } from '@/hooks/use-now';
 import {
@@ -202,6 +203,10 @@ function AgendaContent({ complex }: { complex: Complex }) {
               aria-pressed={courtId === court.id}
               onClick={() => setCourt(court.id)}
             >
+              <SportCourtIcon
+                sport={court.sport}
+                className="size-5 rounded-sm"
+              />
               {court.name}
             </Button>
           ))}

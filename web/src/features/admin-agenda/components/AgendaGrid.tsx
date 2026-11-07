@@ -1,5 +1,6 @@
 'use client';
 
+import { SportCourtIcon } from '@/features/courts/components/SportCourtIcon';
 import type { AdminBooking, AdminCourt } from '@/types/admin';
 import { isBookingCompleted } from '@/features/admin-bookings/lib/booking-status';
 import { cellKey, type AgendaRow } from '../lib/grid';
@@ -36,9 +37,10 @@ export function AgendaGrid({
         {courts.map((court) => (
           <div
             key={court.id}
-            className="bg-muted/40 truncate border-b border-l px-2 py-2 text-sm font-medium"
+            className="bg-muted/40 flex items-center gap-2 border-b border-l px-2 py-2 text-sm font-medium"
           >
-            {court.name}
+            <SportCourtIcon sport={court.sport} className="size-6 rounded-md" />
+            <span className="truncate">{court.name}</span>
           </div>
         ))}
         {rows.map((row) => (
