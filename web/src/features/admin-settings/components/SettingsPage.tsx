@@ -6,6 +6,7 @@ import { PageHeader } from '@/components/layout/PageShell';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useComplex } from '@/features/complex/hooks';
 import { BankDetailsForm } from './BankDetailsForm';
+import { ComplexLogoCard } from './ComplexLogoCard';
 import { ComplexSettingsForm } from './ComplexSettingsForm';
 import { PaymentQrCard } from './PaymentQrCard';
 
@@ -44,7 +45,8 @@ export function SettingsPage() {
               QR de pago
             </TabsTrigger>
           </TabsList>
-          <TabsContent value="complex">
+          <TabsContent value="complex" className="flex flex-col gap-6">
+            <ComplexLogoCard complex={complex.data} />
             <ComplexSettingsForm
               key={`${complex.data.name}|${complex.data.address}`}
               complex={complex.data}
