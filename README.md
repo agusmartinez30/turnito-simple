@@ -1,4 +1,4 @@
-# Turnito Simple
+# Paga la cancha
 
 A reduced version of the sports-complex booking system that keeps **only the bookings module**:
 
@@ -64,7 +64,7 @@ Seed users (password `password123`): `admin@demo.com` (Complejo Demo) and `admin
 | api | `BOOKING_MAX_DAYS_AHEAD`, `TRUST_PROXY` | Booking window and proxy trust |
 | api | `STORAGE_PROVIDER` (`stub` or `supabase`) and the `SUPABASE_*` variables | Payment proof and logo storage |
 | web | `NEXT_PUBLIC_API_URL` | API base URL |
-| web | `NEXT_PUBLIC_APP_NAME` | Product name on login / sign-up (default `Turnito Simple`) |
+| web | `NEXT_PUBLIC_APP_NAME` | Product name on login / sign-up (default `Paga la cancha`) |
 
 ### Tests and checks
 

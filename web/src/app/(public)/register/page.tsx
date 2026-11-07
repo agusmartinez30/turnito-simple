@@ -18,8 +18,8 @@ export default async function RegisterPage({
   return (
     <AuthSplitShell
       wide
-      eyebrow="Tu complejo, en un solo lugar"
-      title="Empezá a recibir reservas hoy"
+      eyebrow="Cobros de tu complejo, en un solo lugar"
+      title="Empezá a gestionar tus pagos hoy"
       description="Cargá tu cuenta y tu complejo en dos pasos. Las canchas se agregan después desde el panel."
     >
       <h1 className="text-2xl font-semibold">Creá tu complejo</h1>

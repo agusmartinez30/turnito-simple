@@ -1,7 +1,7 @@
 {
   "name": "turnito-simple-api",
   "version": "0.1.0",
-  "description": "Turnito Simple REST API: bookings and payments",
+  "description": "Paga la cancha REST API: bookings and payments",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {

@@ -16,7 +16,7 @@ interface Props {
   wide?: boolean;
 }
 
-/** Pantalla dividida de auth: imagen a la izquierda, formulario a la derecha. */
+/** Pantalla dividida de auth: ilustración a la izquierda, formulario a la derecha. */
 export function AuthSplitShell({
   eyebrow,
   title,
@@ -29,14 +29,14 @@ export function AuthSplitShell({
       {/* Imagen y mensaje de marca, solo en pantallas grandes. */}
       <aside className="relative hidden lg:block lg:w-1/2">
         <Image
-          src="/login-court.jpg"
+          src="/auth-pitch.jpg"
           alt=""
           fill
           priority
           sizes="50vw"
           className="object-cover"
         />
-        <div className="absolute inset-0 bg-linear-to-t from-black/85 via-black/50 to-black/30" />
+        <div className="absolute inset-0 bg-linear-to-t from-black/70 via-black/20 to-black/10" />
         <div className="absolute inset-x-0 top-0 flex items-center gap-2 p-8 text-white">
           <VolleyballIcon className="size-6" />
           <span className="text-lg font-semibold">{APP_NAME}</span>

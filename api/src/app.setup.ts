@@ -39,7 +39,7 @@ export function setupApp(app: INestApplication): INestApplication {
     const document = SwaggerModule.createDocument(
       app,
       new DocumentBuilder()
-        .setTitle('Turnito Simple API')
+        .setTitle('Paga la cancha API')
         .setDescription('API REST del sistema de complejo deportivo (MVP)')
         .setVersion('1')
         .addBearerAuth()

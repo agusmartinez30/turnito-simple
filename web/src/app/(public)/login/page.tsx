@@ -19,13 +19,13 @@ export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
 
   return (
     <AuthSplitShell
-      eyebrow="Tu complejo, en un solo lugar"
-      title="Reservá tu cancha en segundos"
-      description="Turnos, canchas y pagos, sin llamadas ni mensajes de ida y vuelta."
+      eyebrow="Cobros de tu complejo, en un solo lugar"
+      title="Gestioná los pagos de tus canchas"
+      description="Seguí quién pagó, quién debe y cuánto cobraste, sin planillas ni mensajes de ida y vuelta."
     >
       <h1 className="text-2xl font-semibold">Ingresar</h1>
       <p className="text-muted-foreground mt-1 mb-6 text-sm">
-        Administrá tu complejo y sus reservas.
+        Controlá los pagos y cobros de tu complejo.
       </p>
       <LoginForm next={next} expired={expired} />
       <p className="text-muted-foreground mt-6 text-center text-sm">
