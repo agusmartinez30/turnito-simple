@@ -1,6 +1,7 @@
 'use client';
 
 import type { AdminBooking, AdminCourt } from '@/types/admin';
+import { isBookingCompleted } from '@/features/admin-bookings/lib/booking-status';
 import { cellKey, type AgendaRow } from '../lib/grid';
 import { AgendaCell } from './AgendaCell';
 
@@ -22,7 +23,6 @@ export function AgendaGrid({
   now,
   onCreate,
 }: Props) {
-  const nowMs = now?.getTime() ?? null;
   return (
     <div className="overflow-x-auto rounded-lg border">
       <div
@@ -48,7 +48,7 @@ export function AgendaGrid({
             courts={courts}
             slotIndex={slotIndex}
             bookings={bookings}
-            nowMs={nowMs}
+            now={now}
             onCreate={onCreate}
           />
         ))}
@@ -62,14 +62,14 @@ function Row({
   courts,
   slotIndex,
   bookings,
-  nowMs,
+  now,
   onCreate,
 }: {
   row: AgendaRow;
   courts: AdminCourt[];
   slotIndex: Set<string>;
   bookings: Map<string, AdminBooking>;
-  nowMs: number | null;
+  now: Date | null;
   onCreate: (courtId: string, startsAt: string) => void;
 }) {
   return (
@@ -85,12 +85,9 @@ function Row({
             key={court.id}
             booking={booking}
             closed={!slotIndex.has(key)}
-            past={nowMs !== null && row.time <= nowMs}
+            past={now !== null && row.time <= now.getTime()}
             completed={
-              booking !== undefined &&
-              nowMs !== null &&
-              booking.status === 'CONFIRMED' &&
-              new Date(booking.endsAt).getTime() <= nowMs
+              booking !== undefined && isBookingCompleted(booking, now)
             }
             onCreate={() => onCreate(court.id, row.startsAt)}
           />

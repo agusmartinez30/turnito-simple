@@ -96,7 +96,7 @@ export function CourtsTable({ courts }: Props) {
   const futureLink = (court: AdminCourt) =>
     court.futureBookingsCount > 0 ? (
       <Link
-        href={`/admin/bookings?courtId=${court.id}&status=CONFIRMED`}
+        href="/admin/agenda"
         className="text-primary hover:underline"
       >
         {court.futureBookingsCount}

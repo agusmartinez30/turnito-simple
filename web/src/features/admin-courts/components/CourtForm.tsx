@@ -338,7 +338,7 @@ export function CourtForm({ court, nextSortOrder }: Props) {
                   conservan su turno. No se puede desactivar la cancha hasta
                   cancelarlas.{' '}
                   <Link
-                    href={`/admin/bookings?courtId=${court.id}&status=CONFIRMED`}
+                    href="/admin/agenda"
                     className="font-medium underline"
                   >
                     Ver reservas

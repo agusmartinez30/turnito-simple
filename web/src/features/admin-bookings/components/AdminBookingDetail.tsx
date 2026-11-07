@@ -61,12 +61,12 @@ import {
   customerDisplayName,
 } from '@/lib/labels';
 import { useAdminBooking, useAdminConfirmBooking } from '../hooks';
-import { isInProgress, isStarted } from '../lib/turn-progress';
 import {
   BOOKING_STATUS_BADGE_VARIANT,
   canAdminCancel,
   canAdminConfirm,
-} from './AdminBookingsTable';
+} from '../lib/booking-status';
+import { isInProgress, isStarted } from '../lib/turn-progress';
 import { AdminCancelDialog, type CancelTarget } from './AdminCancelDialog';
 import { TurnActionButton } from './TurnActionButton';
 import { TurnTimer } from './TurnTimer';
@@ -118,7 +118,7 @@ export function AdminBookingDetail({ id }: { id: string }) {
     return (
       <div className="flex flex-col items-center gap-4 py-16 text-center">
         <h1 className="text-xl font-semibold">Reserva no encontrada</h1>
-        <ButtonLink href="/admin/bookings">Ir a reservas</ButtonLink>
+        <ButtonLink href="/admin/agenda">Ir a la agenda</ButtonLink>
       </div>
     );
   }
@@ -157,8 +157,8 @@ export function AdminBookingDetail({ id }: { id: string }) {
       <Breadcrumb>
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink render={<Link href="/admin/bookings" />}>
-              Reservas
+            <BreadcrumbLink render={<Link href="/admin/agenda" />}>
+              Agenda
             </BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
@@ -385,7 +385,6 @@ export function AdminBookingDetail({ id }: { id: string }) {
           onRegister={() => setPaymentTarget(toPaymentTarget(b))}
           onVoid={(payment) => setVoidTarget({ bookingId: b.id, payment })}
         />
-
       </div>
 
       {canAdminCancel(b) && (

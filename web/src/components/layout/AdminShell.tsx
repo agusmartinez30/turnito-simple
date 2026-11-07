@@ -2,8 +2,8 @@
 
 import {
   BanknoteIcon,
+  CalendarDaysIcon,
   ChevronDownIcon,
-  ClipboardListIcon,
   ExternalLinkIcon,
   LandPlotIcon,
   LogOutIcon,
@@ -37,9 +37,9 @@ import { cn } from '@/lib/utils';
 
 const NAV_ITEMS = [
   {
-    href: '/admin/bookings',
-    label: 'Reservas',
-    icon: ClipboardListIcon,
+    href: '/admin/agenda',
+    label: 'Agenda',
+    icon: CalendarDaysIcon,
   },
   {
     href: '/admin/payments',
@@ -157,7 +157,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const pendingBadge = (item: (typeof NAV_ITEMS)[number]) =>
-    item.href === '/admin/bookings' && pending.data ? (
+    item.href === '/admin/agenda' && pending.data ? (
       <span
         className="bg-warning text-warning-foreground ml-auto rounded-full px-1.5 text-[10px] font-semibold tabular-nums"
         aria-label={`${pending.data} solicitudes pendientes`}
@@ -194,12 +194,12 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-svh w-60 shrink-0 flex-col lg:flex">
         <div className="border-sidebar-border flex h-14 items-center border-b pr-2">
           <Link
-            href="/admin/bookings"
+            href="/admin/agenda"
             className={cn(
               'flex h-full min-w-0 flex-1 items-center gap-2 px-4 font-semibold',
               NAV_FOCUS,
             )}
-            aria-label="Reservas"
+            aria-label="Agenda"
           >
             {mark}
             <span className="truncate">{complexName}</span>
@@ -254,9 +254,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             <MenuIcon className="size-5" />
           </Button>
           <Link
-            href="/admin/bookings"
+            href="/admin/agenda"
             className="flex min-w-0 flex-1 items-center gap-2 font-semibold"
-            aria-label="Reservas"
+            aria-label="Agenda"
           >
             {mark}
             <span className="truncate">{complexName}</span>
