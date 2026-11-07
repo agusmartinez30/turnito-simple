@@ -32,7 +32,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
 import { useAdminCourts } from '@/features/admin-courts/hooks';
 import { isApiError } from '@/lib/api/errors';
-import { formatPrice, todayInTz } from '@/lib/date';
+import { dateParamOf, formatPrice, todayInTz } from '@/lib/date';
 import { SPORT_LABELS } from '@/lib/labels';
 import type { Complex } from '@/types';
 import type { AdminCustomer } from '@/types/admin';
@@ -51,10 +51,23 @@ interface Props {
   open: boolean;
   complex: Complex;
   onClose: () => void;
+  /** Prefill from an agenda cell. */
+  defaultCourtId?: string;
+  /** ISO instant of the slot to preselect (needs `defaultCourtId`). */
+  defaultStartsAt?: string;
+  /** Business day (`YYYY-MM-DD`); defaults to the day of `defaultStartsAt`, else today. */
+  defaultDate?: string;
 }
 
 /** Manual booking: court + date + start time, optional customer, price and note. */
-export function NewBookingDialog({ open, complex, onClose }: Props) {
+export function NewBookingDialog({
+  open,
+  complex,
+  onClose,
+  defaultCourtId,
+  defaultStartsAt,
+  defaultDate,
+}: Props) {
   const [busy, setBusy] = useState(false);
 
   return (
@@ -76,6 +89,9 @@ export function NewBookingDialog({ open, complex, onClose }: Props) {
             complex={complex}
             onClose={onClose}
             onBusyChange={setBusy}
+            defaultCourtId={defaultCourtId}
+            defaultStartsAt={defaultStartsAt}
+            defaultDate={defaultDate}
           />
         )}
       </DialogContent>
@@ -87,10 +103,16 @@ function NewBookingForm({
   complex,
   onClose,
   onBusyChange,
+  defaultCourtId,
+  defaultStartsAt,
+  defaultDate,
 }: {
   complex: Complex;
   onClose: () => void;
   onBusyChange: (busy: boolean) => void;
+  defaultCourtId?: string;
+  defaultStartsAt?: string;
+  defaultDate?: string;
 }) {
   const courts = useAdminCourts();
   const create = useCreateAdminBooking();
@@ -99,9 +121,17 @@ function NewBookingForm({
     [courts.data],
   );
 
-  const [courtId, setCourtId] = useState('');
-  const [date, setDate] = useState(() => todayInTz(complex.timezone));
-  const [startsAt, setStartsAt] = useState('');
+  const [courtId, setCourtId] = useState(defaultCourtId ?? '');
+  const [date, setDate] = useState(
+    () =>
+      defaultDate ??
+      (defaultStartsAt
+        ? dateParamOf(defaultStartsAt, complex.timezone)
+        : todayInTz(complex.timezone)),
+  );
+  const [startsAt, setStartsAt] = useState(
+    defaultCourtId ? (defaultStartsAt ?? '') : '',
+  );
   const [customer, setCustomer] = useState<AdminCustomer | null>(null);
   const [noCustomer, setNoCustomer] = useState(false);
 
@@ -129,7 +159,12 @@ function NewBookingForm({
 
   const form = useForm<NewBookingInput, unknown, NewBookingValues>({
     resolver: zodResolver(newBookingSchema),
-    defaultValues: { customerId: '', price: 0, note: '' },
+    defaultValues: {
+      customerId: '',
+      price:
+        activeCourts.find((c) => c.id === defaultCourtId)?.pricePerSlot ?? 0,
+      note: '',
+    },
   });
   const { errors } = form.formState;
 
