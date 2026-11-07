@@ -65,9 +65,6 @@ model Complex {
   youtubeUrl                String?  @map("youtube_url")
   /// WhatsApp público de contacto, canónico '+' + dígitos: botón "Inscribirme" de los torneos.
   contactWhatsapp           String?  @map("contact_whatsapp")
-  /// Marca del complejo: hex #rrggbb en minúsculas. null = paleta Clubix (web/src/lib/theme.ts).
-  primaryColor              String?  @map("primary_color") @db.VarChar(7)
-  secondaryColor            String?  @map("secondary_color") @db.VarChar(7)
   /// URL pública del logo en el bucket, siempre generada por la API al subir el archivo
   /// (docs/18-storage.md). No es editable por PATCH. null = ícono genérico.
   logoUrl                   String?  @map("logo_url")

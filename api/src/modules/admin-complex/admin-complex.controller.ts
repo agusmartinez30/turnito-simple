@@ -62,12 +62,6 @@ export class AdminComplexController {
       ...(dto.contactWhatsapp !== undefined && {
         contactWhatsapp: dto.contactWhatsapp,
       }),
-      ...(dto.primaryColor !== undefined && {
-        primaryColor: dto.primaryColor,
-      }),
-      ...(dto.secondaryColor !== undefined && {
-        secondaryColor: dto.secondaryColor,
-      }),
       ...(dto.bankCbu !== undefined && { bankCbu: dto.bankCbu }),
       ...(dto.bankAlias !== undefined && { bankAlias: dto.bankAlias }),
       ...(dto.bankHolderName !== undefined && {

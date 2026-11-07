@@ -22,12 +22,6 @@ const phone = ({ value }: { value: unknown }) =>
     ? normalizePhone(value)
     : value;
 
-/** El picker nativo manda `#1800AC`; guardamos siempre minúsculas para poder comparar con `===`. */
-const normalizeHex = ({ value }: { value: unknown }) =>
-  typeof value === 'string' ? value.trim().toLowerCase() : value;
-
-const HEX_COLOR = /^#[0-9a-f]{6}$/;
-
 /** Trims strings and turns a blank one into `null`, so an empty field clears the value. */
 const blankToNull = ({ value }: { value: unknown }) => {
   if (typeof value !== 'string') return value;
@@ -126,19 +120,6 @@ export class UpdateComplexDto {
     message: 'El WhatsApp debe tener entre 8 y 15 dígitos, con código de país',
   })
   contactWhatsapp?: string | null;
-
-  /** `null` = volver a la paleta Clubix. `@IsOptional()` deja pasar tanto `null` como ausente. */
-  @ApiPropertyOptional({ example: '#1800ac', nullable: true })
-  @Transform(normalizeHex)
-  @IsOptional()
-  @Matches(HEX_COLOR, { message: 'Elegí un color válido (#1800AC)' })
-  primaryColor?: string | null;
-
-  @ApiPropertyOptional({ example: '#abea5c', nullable: true })
-  @Transform(normalizeHex)
-  @IsOptional()
-  @Matches(HEX_COLOR, { message: 'Elegí un color válido (#ABEA5C)' })
-  secondaryColor?: string | null;
 
   /** CBU/CVU: exactly 22 digits. Blank or `null` clears it. */
   @ApiPropertyOptional({

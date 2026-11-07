@@ -76,8 +76,6 @@ describe('Complex & Courts (e2e)', () => {
         tiktokUrl: null,
         youtubeUrl: null,
         contactWhatsapp: null,
-        primaryColor: null,
-        secondaryColor: null,
         logoUrl: null,
       });
       const sur = await loginAs(ctx, 'admin.sur@demo.com');

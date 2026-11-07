@@ -73,8 +73,6 @@ describe('Admin complex (e2e)', () => {
       tiktokUrl: null,
       youtubeUrl: null,
       contactWhatsapp: null,
-      primaryColor: null,
-      secondaryColor: null,
       logoUrl: null,
       bankCbu: null,
       bankAlias: null,
@@ -152,30 +150,6 @@ describe('Admin complex (e2e)', () => {
     ).toBe(false);
   });
 
-  it('colores de marca: se normalizan a minúsculas, se exponen en el link público y null vuelve a la paleta', async () => {
-    const saved = await as(ctx, admin).patch('/admin/complex', {
-      primaryColor: '#C81E3C',
-      secondaryColor: '#f5c518',
-    });
-    expect(saved.status).toBe(200);
-    expect(saved.body.data.primaryColor).toBe('#c81e3c');
-    expect(saved.body.data.secondaryColor).toBe('#f5c518');
-
-    // El flujo /app/[slug] los lee sin sesión: es lo que pinta el canvas público.
-    const pub = await publicComplex();
-    expect(pub.status).toBe(200);
-    expect(pub.body.data.primaryColor).toBe('#c81e3c');
-    expect(pub.body.data.secondaryColor).toBe('#f5c518');
-
-    const reset = await as(ctx, admin).patch('/admin/complex', {
-      primaryColor: null,
-      secondaryColor: null,
-    });
-    expect(reset.status).toBe(200);
-    expect(reset.body.data.primaryColor).toBeNull();
-    expect((await publicComplex()).body.data.primaryColor).toBeNull();
-  });
-
   it('contactWhatsapp: se canoniza a +dígitos, se expone en el link público, inválido → 400 y null lo borra', async () => {
     const saved = await as(ctx, admin).patch('/admin/complex', {
       contactWhatsapp: '+54 9 351 111-1111',
@@ -243,19 +217,6 @@ describe('Admin complex (e2e)', () => {
       bankAlias: null,
       bankHolderName: null,
     });
-  });
-
-  it('color inválido → 400 con details.primaryColor', async () => {
-    for (const primaryColor of ['rojo', '#18ac', '#1800acc', '1800ac']) {
-      const res = await as(ctx, admin).patch('/admin/complex', {
-        primaryColor,
-      });
-      expect(res.status).toBe(400);
-      expect(res.body.error.details).toHaveProperty('primaryColor');
-    }
-    expect(
-      (await as(ctx, admin).get('/complex')).body.data.primaryColor,
-    ).toBeNull();
   });
 
   it('timezone → 400 details.timezone; 200 h → 400; -1 → 400; {} → 400; name de 1 char → 400', async () => {

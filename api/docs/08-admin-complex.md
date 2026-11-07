@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Permitir editar los datos del complejo desde el panel: nombre, dirección, ventana de cancelación, confirmación automática de los pedidos públicos, redes sociales, **colores de marca** y **logo**. Contraparte de [`web/docs/09-admin-settings.md`](../../web/docs/09-admin-settings.md).
+Permitir editar los datos del complejo desde el panel: nombre, dirección, ventana de cancelación, confirmación automática de los pedidos públicos, redes sociales y **logo**. Contraparte de [`web/docs/09-admin-settings.md`](../../web/docs/09-admin-settings.md).
 
 ## Endpoints
 
@@ -20,8 +20,6 @@ Permitir editar los datos del complejo desde el panel: nombre, dirección, venta
   tiktokUrl?: string | null;
   youtubeUrl?: string | null;
   contactWhatsapp?: string | null;   // se canoniza a '+' + dígitos (8–15); null lo borra
-  primaryColor?: string | null;      // hex #rrggbb; null vuelve a la paleta Clubix
-  secondaryColor?: string | null;
   bankCbu?: string | null;           // exactamente 22 dígitos; vacío o null lo borra
   bankAlias?: string | null;         // 6–20: letras, dígitos, '.' y '-'; vacío o null lo borra
   bankHolderName?: string | null;    // hasta 100; vacío o null lo borra
@@ -79,8 +77,6 @@ export class UpdateComplexDto {
   // WhatsApp público de contacto (botón "Inscribirme" de los torneos, docs/22-tournaments.md).
   // Mismo formato que customers.phone: normalizePhone() y después la regex.
   @IsOptional() @Matches(/^\+\d{8,15}$/) @Transform(normalizePhone) contactWhatsapp?: string | null;
-  @IsOptional() @Matches(/^#[0-9a-f]{6}$/) @Transform(normalizeHex) primaryColor?: string | null;
-  @IsOptional() @Matches(/^#[0-9a-f]{6}$/) @Transform(normalizeHex) secondaryColor?: string | null;
   // Datos para transferir (docs/23-public-payment-link.md). `blankToNull`: '' → null.
   @IsOptional() @Matches(/^\d{22}$/) @Transform(blankToNull) bankCbu?: string | null;
   @IsOptional() @Matches(/^[A-Za-z0-9.-]{6,20}$/) @Transform(blankToNull) bankAlias?: string | null;
@@ -103,8 +99,7 @@ lo fija para que no se vuelva accidental.
 - El cache de `ComplexService` es por proceso. Con una sola instancia de la API (MVP) la invalidación es suficiente. Si se escala horizontalmente, el cache pasa a TTL corto (30 s) o se elimina; queda anotado en `ComplexService`.
 - `cancellationWindowHours` se evalúa en cada `PATCH /bookings/:id/cancel` a partir de `findByIdOrThrow(booking.court.complexId)`, así que el cambio rige de inmediato para todas las reservas del complejo.
 - `timezone` sigue siendo solo por seed. Cambiarlo con datos existentes desplazaría `openTime` / `closeTime` respecto de las reservas ya persistidas en UTC.
-- **Colores de marca** (`primaryColor` / `secondaryColor`): hex `#rrggbb`, guardados **siempre en minúsculas** (`@Transform` baja el valor antes de validar, porque el picker nativo del navegador manda mayúsculas). `null` explícito borra el color y el complejo vuelve a la paleta Clubix. La columna es `VARCHAR(7)` sin `CHECK`: Prisma no modela check constraints y aparecería como drift en cada `migrate dev`; la única garantía dura es el DTO, y del lado de la web `parseHex` (`web/src/lib/theme.ts`) descarta cualquier valor que no sea un hex, así que un dato corrupto degrada a la paleta por defecto en vez de romper el CSS.
-- Los dos colores se exponen **sin auth** en `GET /public/c/:slug/complex` (`docs/09-public-requests.md`): son lo que pinta `/app/[slug]`, que se sirve a clientes sin cuenta. No son un dato sensible — están a la vista en cada pantalla del link público. **`logoUrl` va por el mismo camino y por la misma razón.**
+- `logoUrl` se expone **sin auth** en `GET /public/c/:slug/complex` (`docs/09-public-requests.md`): es lo que pinta `/app/[slug]`, que se sirve a clientes sin cuenta. No es un dato sensible — está a la vista en cada pantalla del link público.
 
 - **Datos bancarios** (`bankCbu` / `bankAlias` / `bankHolderName`): columnas `VARCHAR(22/20/100)` nullables, independientes entre sí. Se serializan en `toComplexResponse` (respuestas del panel, `GET /complex` y `PATCH`) pero **no** en `GET /public/c/:slug/complex`: el único endpoint público que los devuelve es `GET /public/c/:slug/bookings/:id/payment` (`docs/23-public-payment-link.md`).
 

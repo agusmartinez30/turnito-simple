@@ -17,9 +17,6 @@ export interface PublicComplexResponse {
   tiktokUrl: string | null;
   youtubeUrl: string | null;
   contactWhatsapp: string | null;
-  /** Complex brand: the public pages cannot be themed without it. */
-  primaryColor: string | null;
-  secondaryColor: string | null;
   logoUrl: string | null;
 }
 
@@ -49,8 +46,6 @@ export class PublicComplexController {
       tiktokUrl: c.tiktokUrl,
       youtubeUrl: c.youtubeUrl,
       contactWhatsapp: c.contactWhatsapp,
-      primaryColor: c.primaryColor,
-      secondaryColor: c.secondaryColor,
       logoUrl: c.logoUrl,
     };
   }

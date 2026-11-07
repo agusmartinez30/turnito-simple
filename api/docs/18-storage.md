@@ -7,8 +7,6 @@ Guardar los archivos que suben los admins —hoy solo el **logo del complejo**
 contenedor, en un **bucket público de Supabase Storage**, detrás de una interfaz que permita
 cambiar de proveedor sin tocar el resto de la API.
 
-Contraparte de [`web/docs/19-branding.md`](../../web/docs/19-branding.md).
-
 ## Por qué un bucket y no la base ni el disco
 
 - La API corre en Railway con **una sola réplica**, pero el disco del contenedor es efímero: se
@@ -16,7 +14,7 @@ Contraparte de [`web/docs/19-branding.md`](../../web/docs/19-branding.md).
 - Guardar bytes en Postgres funciona, pero mete binarios en cada backup y obliga a servirlos desde
   la API, que pasa a ser el CDN de imágenes de todos los links públicos.
 - El bucket es **público** porque el logo lo ve cualquier cliente sin cuenta que abra
-  `/app/[slug]`, igual que los colores de marca. Firmar cada lectura agregaría latencia y rompería
+  `/app/[slug]`. Firmar cada lectura agregaría latencia y rompería
   el cache del layout público para proteger algo que ya está a la vista.
 
 ## Módulo
@@ -90,8 +88,7 @@ del servidor. PNG con transparencia cubre cualquier logo real.
 `@supabase/supabase-js` es el SDK entero de la plataforma (auth + postgrest + realtime) para dos
 llamadas HTTP, en un proceso que ya carga Baileys. Node 22 trae `fetch` y `AbortSignal.timeout`
 globales, y el repo ya tiene la doctrina de escribir clientes HTTP finos a mano
-(`web/src/lib/api/client.ts`, y el generador de color de `19-branding.md` sobre una librería de
-color). Lo que se paga a cambio: el mapeo de errores y cualquier cambio futuro de la API de
+(`web/src/lib/api/client.ts`). Lo que se paga a cambio: el mapeo de errores y cualquier cambio futuro de la API de
 Storage son nuestros. Por eso `supabase.provider.spec.ts` fija la forma exacta del request —
 un cambio aparece como test en rojo, no como un 500 silencioso.
 

@@ -28,8 +28,6 @@ const complex: Complex = {
   tiktokUrl: null,
   youtubeUrl: null,
   contactWhatsapp: null,
-  primaryColor: null,
-  secondaryColor: null,
   logoUrl: null,
   bankCbu: null,
   bankAlias: null,

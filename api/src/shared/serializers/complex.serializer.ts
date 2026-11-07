@@ -16,9 +16,6 @@ export interface ComplexResponse {
   youtubeUrl: string | null;
   /** WhatsApp público de contacto, `+dígitos` (docs/08-admin-complex.md). */
   contactWhatsapp: string | null;
-  /** Marca del complejo: hex #rrggbb. null = paleta por defecto (web/src/lib/theme.ts). */
-  primaryColor: string | null;
-  secondaryColor: string | null;
   /** URL pública del logo en el bucket, o null (la web cae al ícono genérico). */
   logoUrl: string | null;
   /** Bank data for transfers; admin-only response (never exposed by the public endpoints). */
@@ -41,8 +38,6 @@ export function toComplexResponse(complex: Complex): ComplexResponse {
     tiktokUrl: complex.tiktokUrl,
     youtubeUrl: complex.youtubeUrl,
     contactWhatsapp: complex.contactWhatsapp,
-    primaryColor: complex.primaryColor,
-    secondaryColor: complex.secondaryColor,
     logoUrl: complex.logoUrl,
     bankCbu: complex.bankCbu,
     bankAlias: complex.bankAlias,
