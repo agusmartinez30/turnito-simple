@@ -68,13 +68,23 @@ function AgendaContent({ complex }: { complex: Complex }) {
     () => (courts.data ?? []).filter((c) => c.isActive),
     [courts.data],
   );
+  // Court filter lives in `?courtId=`; an unknown id falls back to "Todas".
+  const courtParam = params.get('courtId');
+  const courtId = activeCourts.some((c) => c.id === courtParam)
+    ? courtParam
+    : null;
+  const visibleCourts = useMemo(
+    () =>
+      courtId ? activeCourts.filter((c) => c.id === courtId) : activeCourts,
+    [activeCourts, courtId],
+  );
   const rows = useMemo(
-    () => buildAgendaRows(date, activeCourts, complex.timezone),
-    [date, activeCourts, complex.timezone],
+    () => buildAgendaRows(date, visibleCourts, complex.timezone),
+    [date, visibleCourts, complex.timezone],
   );
   const slotIndex = useMemo(
-    () => buildSlotIndex(date, activeCourts, complex.timezone),
-    [date, activeCourts, complex.timezone],
+    () => buildSlotIndex(date, visibleCourts, complex.timezone),
+    [date, visibleCourts, complex.timezone],
   );
 
   // Cover the whole business day, including small-hours slots of courts closing after midnight.
@@ -103,13 +113,22 @@ function AgendaContent({ complex }: { complex: Complex }) {
     [bookings.data],
   );
 
-  const setDate = (next: string) => {
+  const updateParams = (mutate: (sp: URLSearchParams) => void) => {
     const sp = new URLSearchParams(params.toString());
-    if (next === today) sp.delete('date');
-    else sp.set('date', next);
+    mutate(sp);
     const qs = sp.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   };
+  const setDate = (next: string) =>
+    updateParams((sp) => {
+      if (next === today) sp.delete('date');
+      else sp.set('date', next);
+    });
+  const setCourt = (next: string | null) =>
+    updateParams((sp) => {
+      if (next) sp.set('courtId', next);
+      else sp.delete('courtId');
+    });
 
   const error = courts.error ?? bookings.error;
 
@@ -163,6 +182,34 @@ function AgendaContent({ complex }: { complex: Complex }) {
         </span>
       </div>
 
+      {activeCourts.length > 1 && (
+        <div
+          role="group"
+          aria-label="Filtrar por cancha"
+          className="flex flex-wrap gap-2"
+        >
+          <Button
+            size="sm"
+            variant={courtId === null ? 'default' : 'outline'}
+            aria-pressed={courtId === null}
+            onClick={() => setCourt(null)}
+          >
+            Todas
+          </Button>
+          {activeCourts.map((court) => (
+            <Button
+              key={court.id}
+              size="sm"
+              variant={courtId === court.id ? 'default' : 'outline'}
+              aria-pressed={courtId === court.id}
+              onClick={() => setCourt(court.id)}
+            >
+              {court.name}
+            </Button>
+          ))}
+        </div>
+      )}
+
       {error ? (
         <ErrorAlert
           error={error}
@@ -180,7 +227,7 @@ function AgendaContent({ complex }: { complex: Complex }) {
       ) : (
         <>
           <AgendaGrid
-            courts={activeCourts}
+            courts={visibleCourts}
             rows={rows}
             slotIndex={slotIndex}
             bookings={byCell}
