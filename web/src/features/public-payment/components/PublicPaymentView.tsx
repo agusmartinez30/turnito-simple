@@ -1,56 +1,28 @@
 'use client';
 
-import { zodResolver } from '@hookform/resolvers/zod';
 import {
   ArrowLeftIcon,
+  CheckCircle2Icon,
   CheckIcon,
   ClockIcon,
-  CopyIcon,
-  FileTextIcon,
-  Loader2Icon,
-  UploadIcon,
-  XIcon,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { toast } from 'sonner';
+import { useState } from 'react';
 import { ButtonLink } from '@/components/layout/ButtonLink';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from '@/components/ui/field';
-import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   usePublicComplex,
   usePublicHome,
 } from '@/features/public-request/hooks';
 import { isApiError } from '@/lib/api/errors';
-import { formatBookingDate, formatPrice, formatTimeRange } from '@/lib/date';
+import { formatPrice } from '@/lib/date';
 import type { PublicPayment } from '../api';
-import { useUploadPaymentProof, usePublicPayment } from '../hooks';
-import {
-  buildProofFormSchema,
-  formatFileSize,
-  PAYER_NAME_MAX,
-  PLAYERS_COUNT_MAX,
-  parseProofForm,
-  type ProofFormValues,
-  validateProofFile,
-} from '../schemas';
+import { usePublicPayment, useUploadPaymentProof } from '../hooks';
+import { BankTransferCard } from './BankTransferCard';
+import { BookingSummaryCard } from './BookingSummaryCard';
+import { PaymentForm } from './PaymentForm';
 
 /** /app/[slug]/pagar/[id]: bank data + receipt upload for a booking (docs/23-public-payment-link.md). */
 export function PublicPaymentView({ id }: { id: string }) {
@@ -150,11 +122,11 @@ function PaymentContent({
         </p>
       </header>
 
-      <BookingSummary booking={booking} tz={tz} />
+      <BookingSummaryCard booking={booking} tz={tz} />
 
       {justSent && upload.variables && (
-        <Alert>
-          <CheckIcon />
+        <Alert className="border-success/40 bg-success-subtle">
+          <CheckCircle2Icon className="text-success" />
           <AlertTitle>Comprobante enviado, pendiente de revisión</AlertTitle>
           <AlertDescription>
             <p>
@@ -199,9 +171,9 @@ function PaymentContent({
 
       {canUpload && !justSent && (
         <>
-          <BankCard bank={bank} hasBank={hasBank} />
+          <BankTransferCard bank={bank} hasBank={hasBank} />
           {hasBank && (
-            <UploadForm
+            <PaymentForm
               key={formKey}
               upload={upload}
               remaining={booking.remaining}
@@ -239,314 +211,5 @@ function CoverageMessage({ data }: { data: PublicPayment }) {
         alguno, el saldo vuelve a estar disponible.
       </AlertDescription>
     </Alert>
-  );
-}
-
-function BookingSummary({
-  booking,
-  tz,
-}: {
-  booking: PublicPayment['booking'];
-  tz: string;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{booking.courtName}</CardTitle>
-        <CardDescription className="first-letter:uppercase">
-          {formatBookingDate(booking.startsAt, tz)} ·{' '}
-          {formatTimeRange(booking.startsAt, booking.endsAt, tz)}
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1 text-sm">
-          <dt className="text-muted-foreground">Total</dt>
-          <dd className="text-right font-medium tabular-nums">
-            {formatPrice(booking.price)}
-          </dd>
-          <dt className="text-muted-foreground">Ya pagado</dt>
-          <dd className="text-right font-medium tabular-nums">
-            {formatPrice(booking.paidAmount)}
-          </dd>
-          {booking.pendingProofsAmount > 0 && (
-            <>
-              <dt className="text-muted-foreground">En revisión</dt>
-              <dd className="text-right font-medium tabular-nums">
-                {formatPrice(booking.pendingProofsAmount)}
-              </dd>
-            </>
-          )}
-          <dt className="pt-2 font-medium">Saldo a pagar</dt>
-          <dd
-            data-testid="payment-remaining"
-            className="pt-2 text-right text-2xl leading-none font-bold tabular-nums"
-          >
-            {formatPrice(booking.remaining)}
-          </dd>
-        </dl>
-      </CardContent>
-    </Card>
-  );
-}
-
-function BankCard({
-  bank,
-  hasBank,
-}: {
-  bank: PublicPayment['bank'];
-  hasBank: boolean;
-}) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Datos para transferir</CardTitle>
-        {!hasBank && (
-          <CardDescription>
-            El complejo todavía no cargó sus datos bancarios. Comunicate con el
-            complejo para coordinar el pago.
-          </CardDescription>
-        )}
-      </CardHeader>
-      {hasBank && (
-        <CardContent>
-          <dl className="flex flex-col divide-y">
-            <BankRow label="CBU / CVU" value={bank.cbu} />
-            <BankRow label="Alias" value={bank.alias} />
-            <BankRow label="Titular" value={bank.holderName} />
-          </dl>
-        </CardContent>
-      )}
-    </Card>
-  );
-}
-
-function BankRow({ label, value }: { label: string; value: string | null }) {
-  if (!value) return null;
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success(`${label} copiado`);
-    } catch {
-      toast.error('No se pudo copiar. Copialo a mano.');
-    }
-  };
-  return (
-    <div className="flex items-center justify-between gap-3 py-2">
-      <div className="min-w-0">
-        <dt className="text-muted-foreground text-xs">{label}</dt>
-        <dd className="font-medium break-all">{value}</dd>
-      </div>
-      <Button
-        type="button"
-        variant="outline"
-        size="icon-sm"
-        aria-label={`Copiar ${label}`}
-        onClick={copy}
-      >
-        <CopyIcon />
-      </Button>
-    </div>
-  );
-}
-
-const FORM_FIELDS: ReadonlySet<string> = new Set([
-  'payerName',
-  'playersCount',
-  'amount',
-]);
-
-function UploadForm({
-  upload,
-  remaining,
-}: {
-  upload: ReturnType<typeof useUploadPaymentProof>;
-  remaining: number;
-}) {
-  const [file, setFile] = useState<File | null>(null);
-  const [fileError, setFileError] = useState<string | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const schema = useMemo(() => buildProofFormSchema(remaining), [remaining]);
-  const form = useForm<ProofFormValues>({
-    resolver: zodResolver(schema),
-    mode: 'onChange',
-    defaultValues: { payerName: '', playersCount: '', amount: '' },
-  });
-  const { errors, isValid } = form.formState;
-  const busy = upload.isPending;
-
-  const choose = (next: File | undefined) => {
-    upload.reset();
-    if (!next) return;
-    const error = validateProofFile(next);
-    setFileError(error);
-    setFile(error ? null : next);
-  };
-  const clear = () => {
-    setFile(null);
-    setFileError(null);
-    if (inputRef.current) inputRef.current.value = '';
-  };
-
-  const onSubmit = form.handleSubmit((values) => {
-    if (!file) return;
-    upload.mutate(
-      { file, ...parseProofForm(values) },
-      {
-        onError: (error) => {
-          if (!isApiError(error) || error.code !== 'VALIDATION_ERROR') return;
-          for (const [field, messages] of Object.entries(error.details ?? {})) {
-            const message = messages[0];
-            if (message && FORM_FIELDS.has(field)) {
-              form.setError(field as keyof ProofFormValues, { message });
-            }
-          }
-        },
-      },
-    );
-  });
-
-  // Field-level API errors are shown under their input; anything else goes in the alert.
-  const fieldLevelError =
-    upload.isError &&
-    isApiError(upload.error) &&
-    upload.error.code === 'VALIDATION_ERROR' &&
-    Object.keys(upload.error.details ?? {}).some((f) => FORM_FIELDS.has(f));
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Tu comprobante</CardTitle>
-        <CardDescription>
-          Cargá los datos de la transferencia y el comprobante: PDF, JPG o PNG
-          (hasta 5 MB).
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form noValidate className="flex flex-col gap-4" onSubmit={onSubmit}>
-          {upload.isError && !fieldLevelError && (
-            <ErrorAlert error={upload.error} />
-          )}
-          {fileError && <ErrorAlert message={fileError} />}
-
-          <FieldGroup>
-            <Field data-invalid={Boolean(errors.payerName)}>
-              <FieldLabel htmlFor="proof-payer-name">
-                Nombre de quien paga
-              </FieldLabel>
-              <Input
-                id="proof-payer-name"
-                autoComplete="name"
-                maxLength={PAYER_NAME_MAX}
-                aria-invalid={Boolean(errors.payerName)}
-                disabled={busy}
-                {...form.register('payerName')}
-              />
-              <FieldError errors={[errors.payerName]} />
-            </Field>
-
-            <Field data-invalid={Boolean(errors.playersCount)}>
-              <FieldLabel htmlFor="proof-players-count">
-                Cantidad de jugadores que paga{' '}
-                <span className="text-muted-foreground font-normal">
-                  (opcional)
-                </span>
-              </FieldLabel>
-              <Input
-                id="proof-players-count"
-                type="text"
-                inputMode="numeric"
-                className="tabular-nums"
-                aria-invalid={Boolean(errors.playersCount)}
-                disabled={busy}
-                {...form.register('playersCount')}
-              />
-              <FieldDescription>
-                Entre 1 y {PLAYERS_COUNT_MAX}.
-              </FieldDescription>
-              <FieldError errors={[errors.playersCount]} />
-            </Field>
-
-            <Field data-invalid={Boolean(errors.amount)}>
-              <FieldLabel htmlFor="proof-amount">
-                Monto del comprobante
-              </FieldLabel>
-              <Input
-                id="proof-amount"
-                type="text"
-                inputMode="numeric"
-                className="tabular-nums"
-                aria-invalid={Boolean(errors.amount)}
-                disabled={busy}
-                {...form.register('amount')}
-              />
-              <FieldDescription>
-                Saldo a pagar: {formatPrice(remaining)}.{' '}
-                <button
-                  type="button"
-                  className="text-foreground underline underline-offset-2"
-                  disabled={busy}
-                  onClick={() =>
-                    form.setValue('amount', String(remaining), {
-                      shouldValidate: true,
-                      shouldDirty: true,
-                    })
-                  }
-                >
-                  Usar el saldo completo
-                </button>
-              </FieldDescription>
-              <FieldError errors={[errors.amount]} />
-            </Field>
-          </FieldGroup>
-
-          <input
-            ref={inputRef}
-            id="payment-proof-file"
-            data-testid="payment-proof-input"
-            type="file"
-            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
-            className="sr-only"
-            disabled={busy}
-            onChange={(event) => choose(event.target.files?.[0])}
-          />
-          {file ? (
-            <div className="flex items-center gap-3 rounded-lg border p-3 text-sm">
-              <FileTextIcon className="text-muted-foreground size-5 shrink-0" />
-              <span className="min-w-0 flex-1 truncate font-medium">
-                {file.name}
-              </span>
-              <span className="text-muted-foreground tabular-nums">
-                {formatFileSize(file.size)}
-              </span>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                aria-label="Quitar archivo"
-                disabled={busy}
-                onClick={clear}
-              >
-                <XIcon />
-              </Button>
-            </div>
-          ) : (
-            <label
-              htmlFor="payment-proof-file"
-              className="bg-muted/40 hover:bg-muted flex cursor-pointer flex-col items-center gap-1 rounded-lg border border-dashed p-6 text-center text-sm transition-colors"
-            >
-              <UploadIcon className="text-muted-foreground size-5" />
-              <span className="font-medium">
-                Elegir comprobante (PDF, JPG o PNG)
-              </span>
-            </label>
-          )}
-
-          <Button type="submit" size="lg" disabled={!file || !isValid || busy}>
-            {busy && <Loader2Icon className="animate-spin" />}
-            {busy ? 'Enviando…' : 'Confirmar pago'}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
   );
 }

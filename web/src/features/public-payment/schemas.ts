@@ -5,7 +5,7 @@ export const PAYER_NAME_MAX = 100;
 export const PLAYERS_COUNT_MAX = 50;
 
 /** Client-side check of the receipt (PDF, JPG or PNG); the API re-validates type, size and magic bytes. */
-const PROOF_EXTENSION = /.(pdf|jpe?g|png)$/i;
+const PROOF_EXTENSION = /\.(pdf|jpe?g|png)$/i;
 
 export function validateProofFile(file: File): string | null {
   if (!PROOF_EXTENSION.test(file.name)) {
@@ -35,8 +35,11 @@ export interface ProofFormValues {
 
 const isInt = (value: string) => /^\d+$/.test(value);
 
-/** `max` = remaining balance: the API rejects a larger amount too. */
-export function buildProofFormSchema(max: number) {
+/**
+ * The amount is never auto-filled. Going over the pending balance is NOT a validation error
+ * here (see `isAmountOverBalance` for the soft warning); the API remains the authority.
+ */
+export function buildProofFormSchema() {
   return z.object({
     payerName: z
       .string()
@@ -55,16 +58,18 @@ export function buildProofFormSchema(max: number) {
     amount: z
       .string()
       .trim()
-      .min(1, 'Ingresá el monto del comprobante')
+      .min(1, 'Ingresá el importe transferido')
       .refine(
         (v) => isInt(v) && Number(v) >= 1,
-        'Ingresá un monto entero mayor a 0',
-      )
-      .refine(
-        (v) => !isInt(v) || Number(v) <= max,
-        `El monto no puede superar el saldo restante`,
+        'Ingresá un importe entero mayor a 0',
       ),
   });
+}
+
+/** Non-blocking hint: true when a valid amount exceeds the pending balance. */
+export function isAmountOverBalance(amount: string, remaining: number) {
+  const value = amount.trim();
+  return isInt(value) && Number(value) > remaining;
 }
 
 export function parseProofForm(values: ProofFormValues) {
