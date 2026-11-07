@@ -11,6 +11,8 @@ import type { Namespace, Socket } from 'socket.io';
 import { UsersService } from '../users/users.service';
 import {
   complexRoom,
+  NOTIFICATION_CREATED_EVENT,
+  NotificationCreatedPayload,
   PAYMENT_CHANGED_EVENT,
   PaymentChangedPayload,
   REALTIME_NAMESPACE,
@@ -71,6 +73,13 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection {
     this.server
       .to(complexRoom(payload.complexId))
       .emit(PAYMENT_CHANGED_EVENT, payload);
+  }
+
+  /** Delivers a new notification (with display detail) to the admins of its complex only. */
+  emitNotificationCreated(payload: NotificationCreatedPayload): void {
+    this.server
+      .to(complexRoom(payload.complexId))
+      .emit(NOTIFICATION_CREATED_EVENT, payload);
   }
 
   /** Verifies the token and admin role; stores the complex on the socket or throws. */

@@ -135,5 +135,25 @@ describe('RealtimeGateway', () => {
       expect(to).toHaveBeenCalledWith('complex:c1');
       expect(emit).toHaveBeenCalledWith('payment.changed', payload);
     });
+
+    it('emits notification.created only to the complex room', () => {
+      const emit = jest.fn();
+      const to = jest.fn().mockReturnValue({ emit });
+      gateway.server = { to } as unknown as Namespace;
+      const payload = {
+        notificationId: 'n1',
+        complexId: 'c1',
+        bookingId: 'b1',
+        type: 'PROOF_SUBMITTED' as const,
+        payerName: 'Juan',
+        declaredAmount: 4000,
+        createdAt: '2026-09-12T14:00:00.000Z',
+      };
+
+      gateway.emitNotificationCreated(payload);
+
+      expect(to).toHaveBeenCalledWith('complex:c1');
+      expect(emit).toHaveBeenCalledWith('notification.created', payload);
+    });
   });
 });

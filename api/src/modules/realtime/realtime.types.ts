@@ -1,3 +1,5 @@
+import type { NotificationType } from '@prisma/client';
+
 /** Socket.IO namespace admin clients connect to. */
 export const REALTIME_NAMESPACE = '/admin';
 
@@ -19,6 +21,24 @@ export interface PaymentChangedPayload {
   complexId: string;
   bookingId: string;
   kind: PaymentChangeKind;
+}
+
+/** Event pushed to admins when a new notification-center entry is created for their complex. */
+export const NOTIFICATION_CREATED_EVENT = 'notification.created';
+
+/**
+ * Display detail for the toast (payer and declared amount). Safe because the event only goes to
+ * the authenticated admin room of the complex; never includes file keys.
+ */
+export interface NotificationCreatedPayload {
+  notificationId: string;
+  complexId: string;
+  bookingId: string;
+  type: NotificationType;
+  payerName: string;
+  declaredAmount: number;
+  /** ISO-8601 UTC instant. */
+  createdAt: string;
 }
 
 /** One room per complex: a socket only ever joins the room of its own complex. */

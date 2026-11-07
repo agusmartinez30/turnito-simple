@@ -39,3 +39,39 @@ describe('RealtimeEmitter', () => {
     ).not.toThrow();
   });
 });
+
+describe('RealtimeEmitter.notificationCreated', () => {
+  const payload = {
+    notificationId: 'n1',
+    complexId: 'c1',
+    bookingId: 'b1',
+    type: 'PROOF_SUBMITTED' as const,
+    payerName: 'Juan',
+    declaredAmount: 4000,
+    createdAt: '2026-09-12T14:00:00.000Z',
+  };
+
+  it('forwards exactly the notification fields to the gateway', () => {
+    const emitNotificationCreated = jest.fn();
+    const emitter = new RealtimeEmitter({
+      emitNotificationCreated,
+    } as unknown as RealtimeGateway);
+
+    emitter.notificationCreated({
+      ...payload,
+      fileKey: 'secret',
+    } as never);
+
+    expect(emitNotificationCreated).toHaveBeenCalledWith(payload);
+  });
+
+  it('never throws when the gateway fails', () => {
+    const emitter = new RealtimeEmitter({
+      emitNotificationCreated: () => {
+        throw new Error('server not ready');
+      },
+    } as unknown as RealtimeGateway);
+
+    expect(() => emitter.notificationCreated(payload)).not.toThrow();
+  });
+});

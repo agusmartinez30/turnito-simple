@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { RealtimeGateway } from './realtime.gateway';
-import { PaymentChangedPayload } from './realtime.types';
+import {
+  NotificationCreatedPayload,
+  PaymentChangedPayload,
+} from './realtime.types';
 
 /**
  * Publisher used by the business services. Fire-and-forget: it never throws and never awaits
@@ -20,6 +23,32 @@ export class RealtimeEmitter {
       this.gateway.emitPaymentChanged({ complexId, bookingId, kind });
     } catch (error) {
       this.logger.warn(`payment.changed not emitted: ${String(error)}`);
+    }
+  }
+
+  notificationCreated(payload: NotificationCreatedPayload): void {
+    try {
+      // Rebuild the payload so extra properties can never leak to clients.
+      const {
+        notificationId,
+        complexId,
+        bookingId,
+        type,
+        payerName,
+        declaredAmount,
+        createdAt,
+      } = payload;
+      this.gateway.emitNotificationCreated({
+        notificationId,
+        complexId,
+        bookingId,
+        type,
+        payerName,
+        declaredAmount,
+        createdAt,
+      });
+    } catch (error) {
+      this.logger.warn(`notification.created not emitted: ${String(error)}`);
     }
   }
 }

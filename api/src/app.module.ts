@@ -16,6 +16,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { ComplexModule } from './modules/complex/complex.module';
 import { CourtsModule } from './modules/courts/courts.module';
 import { CustomersModule } from './modules/customers/customers.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PublicModule } from './modules/public/public.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
 import { UsersModule } from './modules/users/users.module';
@@ -40,6 +41,7 @@ import { BookingCoreModule } from './shared/bookings/booking-core.module';
     AdminComplexModule,
     AdminCustomersModule,
     AdminPaymentsModule,
+    NotificationsModule,
     PublicModule,
     RealtimeModule,
   ],

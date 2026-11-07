@@ -47,6 +47,10 @@ enum PaymentProofStatus {
   REJECTED
 }
 
+enum NotificationType {
+  PROOF_SUBMITTED // a player uploaded a transfer proof from the public payment link
+}
+
 model Complex {
   id                        String   @id @default(uuid())
   slug                      String   @unique // URL-safe, inmutable: identifica al complejo en /public/c/:slug y /app/[slug]
@@ -74,9 +78,10 @@ model Complex {
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  courts    Court[]
-  users     User[]
-  customers Customer[]
+  courts        Court[]
+  users         User[]
+  customers     Customer[]
+  notifications Notification[]
 
   @@map("complexes")
 }
@@ -189,6 +194,7 @@ model Booking {
   finishedBy    User?          @relation("bookingFinishedBy", fields: [finishedById], references: [id])
   payments      Payment[]
   paymentProofs PaymentProof[]
+  notifications Notification[]
 
   @@index([customerId, startsAt])
   @@index([courtId, startsAt])
@@ -238,11 +244,36 @@ model PaymentProof {
   reviewedById   String?            @map("reviewed_by_id")
   rejectReason   String?            @map("reject_reason")
 
-  booking    Booking  @relation(fields: [bookingId], references: [id])
-  reviewedBy User?    @relation("paymentProofReviewedBy", fields: [reviewedById], references: [id])
-  payment    Payment?
+  booking       Booking        @relation(fields: [bookingId], references: [id])
+  reviewedBy    User?          @relation("paymentProofReviewedBy", fields: [reviewedById], references: [id])
+  payment       Payment?
+  notifications Notification[]
 
   @@index([bookingId])
   @@index([status])
   @@map("payment_proofs")
+}
+
+/**
+ * Admin notification center entry. Created in the same transaction as the event that caused it;
+ * read state is shared by every admin of the complex (`readAt` null = unread).
+ */
+model Notification {
+  id             String           @id @default(uuid())
+  complexId      String           @map("complex_id")
+  bookingId      String           @map("booking_id")
+  proofId        String?          @map("proof_id")
+  type           NotificationType
+  payerName      String           @map("payer_name")
+  declaredAmount Int              @map("declared_amount")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  readAt         DateTime?        @map("read_at") @db.Timestamptz(3)
+
+  complex Complex       @relation(fields: [complexId], references: [id], onDelete: Restrict)
+  booking Booking       @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+  proof   PaymentProof? @relation(fields: [proofId], references: [id], onDelete: SetNull)
+
+  @@index([complexId, readAt])
+  @@index([complexId, createdAt])
+  @@map("notifications")
 }

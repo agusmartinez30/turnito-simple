@@ -27,7 +27,7 @@ export const prisma: PrismaClient = new PrismaClient();
 /** Deja la DB exactamente en el estado del seed. */
 export async function resetDatabase(): Promise<void> {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE TABLE payment_proofs, payments, bookings, customers, users, courts, complexes RESTART IDENTITY CASCADE',
+    'TRUNCATE TABLE notifications, payment_proofs, payments, bookings, customers, users, courts, complexes RESTART IDENTITY CASCADE',
   );
   await seed(prisma, { includeUsers: true });
 }

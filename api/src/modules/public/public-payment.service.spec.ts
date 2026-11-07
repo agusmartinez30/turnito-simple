@@ -4,6 +4,7 @@ import { AppException } from '../../common/errors/app.exception';
 import { ErrorCode } from '../../common/errors/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { bookingFixture, complexFixture } from '../../shared/testing/fixtures';
+import { RealtimeEmitter } from '../realtime/realtime.emitter';
 import { STORAGE_PROVIDER_TOKEN } from '../storage/providers/storage-provider.interface';
 import { CreatePaymentProofDto } from './dto/create-payment-proof.dto';
 import { PublicPaymentService } from './public-payment.service';
@@ -57,6 +58,8 @@ describe('PublicPaymentService', () => {
   let findUniqueOrThrow: jest.Mock;
   let groupBy: jest.Mock;
   let proofCreate: jest.Mock;
+  let notificationCreate: jest.Mock;
+  let emitter: { paymentChanged: jest.Mock; notificationCreated: jest.Mock };
   let queryRaw: jest.Mock;
   let uploadPrivate: jest.Mock;
   let removePrivate: jest.Mock;
@@ -67,19 +70,32 @@ describe('PublicPaymentService', () => {
       .fn()
       .mockResolvedValue({ status: 'CONFIRMED', price: 10000, payments: [] });
     groupBy = jest.fn().mockResolvedValue([]);
-    proofCreate = jest.fn().mockResolvedValue({});
+    proofCreate = jest
+      .fn()
+      .mockResolvedValue({ id: 'proof1', declaredAmount: 4000 });
+    notificationCreate = jest.fn().mockResolvedValue({
+      id: 'n1',
+      type: 'PROOF_SUBMITTED',
+      createdAt: new Date('2026-09-12T14:00:00Z'),
+    });
+    emitter = {
+      paymentChanged: jest.fn(),
+      notificationCreated: jest.fn(),
+    };
     queryRaw = jest.fn().mockResolvedValue([]);
     uploadPrivate = jest.fn().mockResolvedValue(undefined);
     removePrivate = jest.fn().mockResolvedValue(undefined);
     const prisma: Record<string, unknown> = {
       booking: { findFirst, findUniqueOrThrow },
       paymentProof: { groupBy, create: proofCreate },
+      notification: { create: notificationCreate },
       $queryRaw: queryRaw,
     };
     prisma.$transaction = (fn: (tx: unknown) => unknown) => fn(prisma);
     const moduleRef = await Test.createTestingModule({
       providers: [
         PublicPaymentService,
+        { provide: RealtimeEmitter, useValue: emitter },
         { provide: PrismaService, useValue: prisma },
         {
           provide: STORAGE_PROVIDER_TOKEN,
@@ -203,6 +219,68 @@ describe('PublicPaymentService', () => {
           declaredAmount: 5000,
         },
       });
+    });
+
+    it('creates the PROOF_SUBMITTED notification inside the transaction and emits after commit', async () => {
+      const order: string[] = [];
+      proofCreate.mockImplementation(() => {
+        order.push('proof');
+        return Promise.resolve({ id: 'proof1', declaredAmount: 5000 });
+      });
+      notificationCreate.mockImplementation(() => {
+        order.push('notification');
+        return Promise.resolve({
+          id: 'n1',
+          type: 'PROOF_SUBMITTED',
+          createdAt: new Date('2026-09-12T14:00:00Z'),
+        });
+      });
+      emitter.notificationCreated.mockImplementation(() => {
+        order.push('emit');
+      });
+
+      await service.uploadProof(
+        complexFixture,
+        'b1',
+        dto({ payerName: 'Ana', amount: 5000 }),
+        pdfFile(),
+      );
+
+      expect(notificationCreate).toHaveBeenCalledWith({
+        data: {
+          complexId: complexFixture.id,
+          bookingId: 'b1',
+          proofId: 'proof1',
+          type: 'PROOF_SUBMITTED',
+          payerName: 'Ana',
+          declaredAmount: 5000,
+        },
+      });
+      expect(order).toEqual(['proof', 'notification', 'emit']);
+      expect(emitter.notificationCreated).toHaveBeenCalledWith({
+        notificationId: 'n1',
+        complexId: complexFixture.id,
+        bookingId: 'b1',
+        type: 'PROOF_SUBMITTED',
+        payerName: 'Ana',
+        declaredAmount: 5000,
+        createdAt: '2026-09-12T14:00:00.000Z',
+      });
+      expect(emitter.paymentChanged).toHaveBeenCalledWith({
+        complexId: complexFixture.id,
+        bookingId: 'b1',
+        kind: 'proof_submitted',
+      });
+    });
+
+    it('does not emit nor keep the file when the notification insert fails', async () => {
+      notificationCreate.mockRejectedValue(new Error('db down'));
+      await expect(
+        service.uploadProof(complexFixture, 'b1', dto(), pdfFile()),
+      ).rejects.toThrow('db down');
+      expect(emitter.notificationCreated).not.toHaveBeenCalled();
+      expect(emitter.paymentChanged).not.toHaveBeenCalled();
+      expect(removePrivate).toHaveBeenCalledTimes(1);
     });
 
     it('stores a null playersCount when omitted', async () => {

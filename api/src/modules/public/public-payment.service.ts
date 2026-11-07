@@ -2,6 +2,7 @@ import { Inject, Injectable, Logger, Optional } from '@nestjs/common';
 import {
   BookingStatus,
   Complex,
+  NotificationType,
   PaymentProofStatus,
   Prisma,
 } from '@prisma/client';
@@ -122,8 +123,9 @@ export class PublicPaymentService {
       contentType: type.contentType,
       bucket: 'paymentProofs',
     });
+    let created: { id: string; createdAt: Date };
     try {
-      await this.prisma.$transaction(async (tx) => {
+      created = await this.prisma.$transaction(async (tx) => {
         // Row lock: uploads for this booking are serialized, so racing requests
         // cannot both pass the remaining check below.
         await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
@@ -147,12 +149,23 @@ export class PublicPaymentService {
           await this.proofTotals(tx, bookingId),
           dto.amount,
         );
-        await tx.paymentProof.create({
+        const proof = await tx.paymentProof.create({
           data: {
             bookingId,
             fileKey: key,
             payerName: dto.payerName,
             playersCount: dto.playersCount ?? null,
+            declaredAmount: dto.amount,
+          },
+        });
+        // Same transaction as the proof: a notification never exists without its proof.
+        return tx.notification.create({
+          data: {
+            complexId: complex.id,
+            bookingId,
+            proofId: proof.id,
+            type: NotificationType.PROOF_SUBMITTED,
+            payerName: dto.payerName,
             declaredAmount: dto.amount,
           },
         });
@@ -165,6 +178,15 @@ export class PublicPaymentService {
       complexId: complex.id,
       bookingId,
       kind: 'proof_submitted',
+    });
+    this.realtime?.notificationCreated({
+      notificationId: created.id,
+      complexId: complex.id,
+      bookingId,
+      type: NotificationType.PROOF_SUBMITTED,
+      payerName: dto.payerName,
+      declaredAmount: dto.amount,
+      createdAt: created.createdAt.toISOString(),
     });
     return this.view(complex, bookingId);
   }
