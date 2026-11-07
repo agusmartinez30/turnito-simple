@@ -75,7 +75,7 @@ export function PaymentLinkCard({
           El cliente ve los datos bancarios del club y sube el comprobante en
           PDF o imagen, sin crear cuenta.
           {!hasBankData &&
-            ' Todavía no cargaste los datos bancarios en Configuración: el cliente no los va a ver.'}
+            ' Todavía no cargaste los datos bancarios en Mi complejo: el cliente no los va a ver.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">

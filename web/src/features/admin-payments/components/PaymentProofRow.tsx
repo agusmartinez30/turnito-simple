@@ -52,76 +52,66 @@ export function PaymentProofRow({
   return (
     <li
       className={cn(
-        'flex gap-3 px-3 py-3',
+        'flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3',
         pending && 'bg-warning-subtle/40 border-l-warning border-l-2',
       )}
     >
       <PaymentEntryIcon kind="proof" tone={pending ? 'warning' : 'danger'} />
-      <div className="flex min-w-0 flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex min-w-0 flex-col gap-0.5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="truncate font-medium">{proof.payerName}</span>
-              <Badge variant={STATUS_VARIANTS[proof.status]}>
-                {STATUS_LABELS[proof.status]}
-              </Badge>
-            </div>
-            <span className="text-muted-foreground text-xs">
-              Comprobante · {formatDateTime(proof.createdAt, timezone)}
-              {players && ` · ${players}`}
-            </span>
-          </div>
-          {proof.declaredAmount > 0 && (
-            <div className="flex shrink-0 flex-col items-end">
-              <span className="font-semibold tabular-nums">
-                {formatPrice(proof.declaredAmount)}
-              </span>
-              <span className="text-muted-foreground text-xs">declarado</span>
-            </div>
-          )}
+      <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="truncate font-medium">{proof.payerName}</span>
+          <Badge variant={STATUS_VARIANTS[proof.status]}>
+            {STATUS_LABELS[proof.status]}
+          </Badge>
         </div>
-
+        <span className="text-muted-foreground text-xs">
+          Comprobante · {formatDateTime(proof.createdAt, timezone)}
+          {players && ` · ${players}`}
+        </span>
         {proof.status === 'REJECTED' && proof.rejectReason && (
           <p className="text-muted-foreground text-xs">
             Motivo: {proof.rejectReason}
           </p>
         )}
-
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={opening}
-            onClick={onOpen}
-          >
-            {opening ? (
-              <Loader2Icon className="animate-spin" />
-            ) : (
-              <FileSearchIcon />
-            )}
-            Ver comprobante
-          </Button>
-          {pending && canReview && (
-            <>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => onReview('approve')}
-              >
-                Aprobar
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => onReview('reject')}
-              >
-                Rechazar
-              </Button>
-            </>
-          )}
+      </div>
+      {proof.declaredAmount > 0 && (
+        <div className="flex shrink-0 flex-col items-end">
+          <span className="font-semibold tabular-nums">
+            {formatPrice(proof.declaredAmount)}
+          </span>
+          <span className="text-muted-foreground text-xs">declarado</span>
         </div>
+      )}
+      <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={opening}
+          onClick={onOpen}
+        >
+          {opening ? (
+            <Loader2Icon className="animate-spin" />
+          ) : (
+            <FileSearchIcon />
+          )}
+          Ver comprobante
+        </Button>
+        {pending && canReview && (
+          <>
+            <Button type="button" size="sm" onClick={() => onReview('approve')}>
+              Aprobar
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onReview('reject')}
+            >
+              Rechazar
+            </Button>
+          </>
+        )}
       </div>
     </li>
   );

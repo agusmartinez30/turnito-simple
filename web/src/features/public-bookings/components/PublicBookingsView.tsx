@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronRightIcon } from 'lucide-react';
+import { ArrowRightIcon, ClockIcon, UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
@@ -123,12 +123,13 @@ function BookingList({
   );
 }
 
-/** "Hoy" / "Ayer"; anything else (clock edge cases) falls back to the full date. */
+/** "Hoy · Sábado 7 de noviembre" / "Mañana · …"; other days show the full date only. */
 function dayLabel(iso: string, tz: string): string {
   const relative = formatRelativeDay(iso, tz);
-  return relative === 'Hoy' || relative === 'Ayer'
-    ? relative
-    : formatBookingDateCapitalized(iso, tz);
+  const date = formatBookingDateCapitalized(iso, tz);
+  return relative === 'Hoy' || relative === 'Mañana' || relative === 'Ayer'
+    ? `${relative} · ${date}`
+    : date;
 }
 
 function BookingCard({ booking, tz }: { booking: PublicBooking; tz: string }) {
@@ -143,31 +144,48 @@ function BookingCard({ booking, tz }: { booking: PublicBooking; tz: string }) {
       href={`/app/${encodeURIComponent(slug)}/pagar/${encodeURIComponent(booking.id)}`}
       data-testid="public-booking-card"
       className={cn(
-        'bg-card focus-visible:ring-ring/50 flex min-h-16 items-center gap-3 rounded-xl border p-4 outline-none focus-visible:ring-[3px]',
+        'bg-card focus-visible:ring-ring/50 flex flex-col gap-3 rounded-xl border p-4 outline-none focus-visible:ring-[3px]',
         paid ? 'opacity-60' : 'hover:bg-muted/50 shadow-xs',
       )}
     >
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <span className="text-lg leading-none font-semibold tabular-nums">
-            {formatTimeRange(booking.startsAt, booking.endsAt, tz)}
-          </span>
-          <PaymentBadge payment={booking.payment} />
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <ClockIcon
+            aria-hidden="true"
+            className="text-muted-foreground mt-0.5 size-5 shrink-0"
+          />
+          <div className="flex min-w-0 flex-col gap-1">
+            <span className="text-lg leading-none font-semibold tabular-nums">
+              {formatTimeRange(booking.startsAt, booking.endsAt, tz)}
+            </span>
+            <span className="text-muted-foreground truncate text-sm">
+              {sport} · {booking.court.name}
+            </span>
+          </div>
         </div>
-        <span className="truncate text-sm">
-          {booking.court.name}
-          <span className="text-muted-foreground"> · {sport}</span>
-        </span>
+        <PaymentBadge payment={booking.payment} />
+      </div>
+
+      <div className="flex items-center gap-2 border-t pt-3 text-sm">
+        <UserIcon
+          aria-hidden="true"
+          className="text-muted-foreground size-4 shrink-0"
+        />
+        <span className="text-muted-foreground shrink-0">Reservado por</span>
         <span
           className={cn(
-            'truncate text-sm',
-            !booking.customerName && 'text-muted-foreground italic',
+            'truncate font-medium',
+            !booking.customerName && 'text-muted-foreground font-normal italic',
           )}
         >
           {booking.customerName ?? 'Reserva sin nombre'}
         </span>
       </div>
-      <ChevronRightIcon className="text-muted-foreground size-5 shrink-0" />
+
+      <div className="text-primary flex items-center justify-end gap-1 text-sm font-medium">
+        Abonar mi parte
+        <ArrowRightIcon aria-hidden="true" className="size-4" />
+      </div>
     </Link>
   );
 }

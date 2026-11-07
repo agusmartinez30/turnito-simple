@@ -141,55 +141,66 @@ export function PaymentsCard({ booking, timezone, onRegister, onVoid }: Props) {
               }
               const p = entry.payment;
               return (
-                <li key={p.id} className="flex gap-3 px-3 py-3">
+                <li
+                  key={p.id}
+                  className="flex flex-wrap items-center gap-x-3 gap-y-2 px-3 py-3"
+                >
                   <PaymentEntryIcon
                     kind={p.method}
                     className={cn(p.voidedAt && 'opacity-50')}
                   />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 flex-col gap-0.5">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={cn(
-                              'font-medium',
-                              p.voidedAt && 'text-muted-foreground',
-                            )}
-                          >
-                            {PAYMENT_METHOD_LABELS[p.method]}
-                          </span>
-                          {p.voidedAt && (
-                            <Badge variant="outline">Anulado</Badge>
+                  <div className="flex min-w-48 flex-1 flex-col gap-0.5">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {p.payerName && (
+                        <span
+                          className={cn(
+                            'truncate font-bold',
+                            p.voidedAt && 'text-muted-foreground',
                           )}
-                          {p.payerName && (
-                            <span className="truncate">{p.payerName}</span>
-                          )}
-                          {p.note && (
-                            <span className="text-muted-foreground truncate">
-                              {p.note}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground text-xs">
-                          {formatDateTime(p.createdAt, timezone)} · por{' '}
-                          {p.registeredBy.name}
+                        >
+                          {p.payerName}
                         </span>
-                      </div>
+                      )}
                       <span
                         className={cn(
-                          'shrink-0 font-semibold tabular-nums',
-                          p.voidedAt && 'text-muted-foreground line-through',
+                          p.payerName ? 'text-muted-foreground' : 'font-medium',
+                          p.voidedAt && 'text-muted-foreground',
                         )}
                       >
-                        {formatPrice(p.amount)}
+                        {PAYMENT_METHOD_LABELS[p.method]}
                       </span>
+                      {p.voidedAt && <Badge variant="outline">Anulado</Badge>}
+                      {p.note && (
+                        <span className="text-muted-foreground truncate">
+                          {p.note}
+                        </span>
+                      )}
                     </div>
+                    <span className="text-muted-foreground text-xs">
+                      {formatDateTime(p.createdAt, timezone)}
+                    </span>
+                    {p.voidedAt && (
+                      <span className="text-muted-foreground text-xs">
+                        Anulado{p.voidedBy && ` por ${p.voidedBy.name}`} el{' '}
+                        {formatDateTime(p.voidedAt, timezone)}
+                        {p.voidReason && ` · ${p.voidReason}`}
+                      </span>
+                    )}
+                  </div>
+                  <span
+                    className={cn(
+                      'shrink-0 font-semibold tabular-nums',
+                      p.voidedAt && 'text-muted-foreground line-through',
+                    )}
+                  >
+                    {formatPrice(p.amount)}
+                  </span>
+                  <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-2">
                     {p.proofId && (
                       <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="w-fit"
                         disabled={openingId === p.proofId}
                         onClick={() => open(booking.id, p.proofId!)}
                       >
@@ -201,17 +212,11 @@ export function PaymentsCard({ booking, timezone, onRegister, onVoid }: Props) {
                         Ver comprobante
                       </Button>
                     )}
-                    {p.voidedAt ? (
-                      <span className="text-muted-foreground text-xs">
-                        Anulado{p.voidedBy && ` por ${p.voidedBy.name}`} el{' '}
-                        {formatDateTime(p.voidedAt, timezone)}
-                        {p.voidReason && ` · ${p.voidReason}`}
-                      </span>
-                    ) : (
+                    {!p.voidedAt && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-muted-foreground -ml-2 w-fit"
+                        className="text-muted-foreground"
                         onClick={() => onVoid(p)}
                       >
                         <BanIcon data-icon="inline-start" />

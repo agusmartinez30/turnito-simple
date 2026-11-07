@@ -28,7 +28,9 @@ import { Button } from '@/components/ui/button';
 import { ButtonLink } from '@/components/layout/ButtonLink';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ErrorAlert } from '@/components/layout/ErrorAlert';
+import { usePaymentProofs } from '@/features/admin-payments/hooks';
 import { PaymentsCard } from '@/features/admin-payments/components/PaymentsCard';
 import { PaymentLinkCard } from '@/features/admin-payments/components/PaymentLinkCard';
 import { PaymentStatusBadge } from '@/features/admin-payments/components/PaymentStatusBadge';
@@ -51,7 +53,6 @@ import {
   formatPrice,
   formatShortDate,
   formatTimeRange,
-  todayInTz,
 } from '@/lib/date';
 import {
   BOOKING_ACTOR_LABELS,
@@ -68,7 +69,6 @@ import {
 } from '../lib/booking-status';
 import { isInProgress, isStarted } from '../lib/turn-progress';
 import { AdminCancelDialog, type CancelTarget } from './AdminCancelDialog';
-import { TurnActionButton } from './TurnActionButton';
 import { TurnTimer } from './TurnTimer';
 
 /** Tarjeta de resumen: responde una sola pregunta (cuándo/dónde/quién/cuánto). */
@@ -102,6 +102,10 @@ export function AdminBookingDetail({ id }: { id: string }) {
   const complex = useComplex();
   const booking = useAdminBooking(id);
   const confirm = useAdminConfirmBooking();
+  const proofs = usePaymentProofs(id);
+  const pendingProofs = (proofs.data ?? []).filter(
+    (p) => p.status === 'PENDING',
+  ).length;
   // El reloj solo tickea mientras el turno está en curso; finalizado queda congelado.
   const now = useNow(booking.data ? isInProgress(booking.data) : false, 1_000);
   const [cancelTarget, setCancelTarget] = useState<CancelTarget | null>(null);
@@ -186,12 +190,24 @@ export function AdminBookingDetail({ id }: { id: string }) {
         {isStarted(b) && (isInProgress(b) ? now !== null : true) && (
           <TurnTimer booking={b} now={now} className="text-sm" />
         )}
-        <TurnActionButton
-          booking={b}
-          today={todayInTz(tz)}
-          timezone={tz}
-          label="long"
-        />
+        {canAdminCancel(b) && (
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={() =>
+              setCancelTarget({
+                id: b.id,
+                startsAt: b.startsAt,
+                endsAt: b.endsAt,
+                courtName: b.court.name,
+                customerName: customerDisplayName(b.customer),
+                pending,
+              })
+            }
+          >
+            {pending ? 'Rechazar solicitud' : 'Cancelar reserva'}
+          </Button>
+        )}
       </div>
 
       {pending && (
@@ -224,187 +240,197 @@ export function AdminBookingDetail({ id }: { id: string }) {
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <SummaryCard icon={CalendarIcon} label="Cuándo">
-          <p className="text-lg font-semibold capitalize">
-            {formatBookingDate(b.startsAt, tz)}
-          </p>
-          <p className="text-muted-foreground text-sm">
-            {formatTimeRange(b.startsAt, b.endsAt, tz)} ·{' '}
-            {durationMinutes(b.startsAt, b.endsAt)} min
-          </p>
-        </SummaryCard>
-
-        <SummaryCard icon={MapPinIcon} label="Dónde">
-          <Link
-            href={`/admin/courts/${b.courtId}`}
-            className="text-lg font-semibold hover:underline"
+      <Tabs defaultValue="turno">
+        <TabsList className="h-9">
+          <TabsTrigger
+            value="turno"
+            className="data-active:bg-foreground data-active:text-background dark:data-active:bg-foreground dark:data-active:text-background px-4"
           >
-            {b.court.name}
-          </Link>
-          <div>
-            <Badge variant="outline">{SPORT_LABELS[b.court.sport]}</Badge>
-          </div>
-        </SummaryCard>
-
-        <SummaryCard
-          icon={UserIcon}
-          label="Quién"
-          badge={
-            customer && !customer.isActive ? (
-              <Badge variant="secondary">Archivado</Badge>
-            ) : null
-          }
-        >
-          {!customer ? (
-            <p className="text-muted-foreground text-sm">Sin cliente</p>
-          ) : (
-            <>
-              <p className="text-lg font-semibold">{customer.name}</p>
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                {customer.phone ? (
-                  <a
-                    href={`tel:${customer.phone}`}
-                    className="text-primary flex items-center gap-1.5 hover:underline"
-                  >
-                    <PhoneIcon className="size-4" />
-                    {customer.phone}
-                  </a>
-                ) : (
-                  <span className="text-muted-foreground">Sin teléfono</span>
-                )}
-                <Link
-                  href={`/admin/customers/${customer.id}`}
-                  className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
-                >
-                  Ver ficha
-                </Link>
-              </div>
-            </>
-          )}
-        </SummaryCard>
-
-        <SummaryCard icon={BanknoteIcon} label="Cuánto">
-          <p className="text-lg font-semibold">{formatPrice(b.price)}</p>
-          {(b.status !== 'CANCELLED' || b.payment.paidAmount > 0) && (
-            <div>
-              <PaymentStatusBadge payment={b.payment} price={b.price} />
-            </div>
-          )}
-        </SummaryCard>
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
-              <dt className="text-muted-foreground">Origen</dt>
-              <dd>
-                <Badge variant="outline">
-                  {BOOKING_SOURCE_LABELS[b.source]}
-                </Badge>
-              </dd>
-              <dt className="text-muted-foreground">Cargada el</dt>
-              <dd>
-                {formatDateTime(b.createdAt, tz)}
-                {b.createdBy && ` por ${b.createdBy.name}`}
-              </dd>
-              {b.confirmedAt && (
-                <>
-                  <dt className="text-muted-foreground">Confirmada el</dt>
-                  <dd>
-                    {formatDateTime(b.confirmedAt, tz)}
-                    {b.confirmedBy && ` por ${b.confirmedBy.name}`}
-                  </dd>
-                </>
-              )}
-              {b.startedAt && (
-                <>
-                  <dt className="text-muted-foreground">Iniciado el</dt>
-                  <dd>
-                    {formatDateTime(b.startedAt, tz)}
-                    {b.startedBy && ` por ${b.startedBy.name}`}
-                  </dd>
-                </>
-              )}
-              {b.finishedAt && (
-                <>
-                  <dt className="text-muted-foreground">Finalizado el</dt>
-                  <dd>
-                    {formatDateTime(b.finishedAt, tz)}
-                    {b.finishedBy && ` por ${b.finishedBy.name}`}
-                  </dd>
-                </>
-              )}
-            </dl>
-          </CardContent>
-        </Card>
-
-        {b.note && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Nota</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm whitespace-pre-line">
-              {b.note}
-            </CardContent>
-          </Card>
-        )}
-
-        {b.cancellationReason && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Motivo de cancelación</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm whitespace-pre-line">
-              {b.cancellationReason}
-            </CardContent>
-          </Card>
-        )}
-
-        {b.status !== 'CANCELLED' && (
-          <PaymentLinkCard
-            bookingId={b.id}
-            slug={complex.data.slug}
-            customerName={customer?.name ?? null}
-            customerPhone={customer?.phone ?? null}
-            hasBankData={Boolean(
-              complex.data.bankCbu &&
-              complex.data.bankAlias &&
-              complex.data.bankHolderName,
+            Turno
+          </TabsTrigger>
+          <TabsTrigger
+            value="pagos"
+            className="data-active:bg-foreground data-active:text-background dark:data-active:bg-foreground dark:data-active:text-background px-4"
+          >
+            Pagos
+            {pendingProofs > 0 && (
+              <Badge variant="warning" className="h-4 min-w-4 px-1 text-[10px]">
+                {pendingProofs}
+              </Badge>
             )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="turno" className="flex flex-col gap-4">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <SummaryCard icon={CalendarIcon} label="Cuándo">
+              <p className="text-lg font-semibold capitalize">
+                {formatBookingDate(b.startsAt, tz)}
+              </p>
+              <p className="text-muted-foreground text-sm">
+                {formatTimeRange(b.startsAt, b.endsAt, tz)} ·{' '}
+                {durationMinutes(b.startsAt, b.endsAt)} min
+              </p>
+            </SummaryCard>
+
+            <SummaryCard icon={MapPinIcon} label="Dónde">
+              <Link
+                href={`/admin/courts/${b.courtId}`}
+                className="text-lg font-semibold hover:underline"
+              >
+                {b.court.name}
+              </Link>
+              <div>
+                <Badge variant="outline">{SPORT_LABELS[b.court.sport]}</Badge>
+              </div>
+            </SummaryCard>
+
+            <SummaryCard
+              icon={UserIcon}
+              label="Quién"
+              badge={
+                customer && !customer.isActive ? (
+                  <Badge variant="secondary">Archivado</Badge>
+                ) : null
+              }
+            >
+              {!customer ? (
+                <p className="text-muted-foreground text-sm">Sin cliente</p>
+              ) : (
+                <>
+                  <p className="text-lg font-semibold">{customer.name}</p>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                    {customer.phone ? (
+                      <a
+                        href={`tel:${customer.phone}`}
+                        className="text-primary flex items-center gap-1.5 hover:underline"
+                      >
+                        <PhoneIcon className="size-4" />
+                        {customer.phone}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">
+                        Sin teléfono
+                      </span>
+                    )}
+                    <Link
+                      href={`/admin/customers/${customer.id}`}
+                      className="text-muted-foreground hover:text-foreground underline-offset-2 hover:underline"
+                    >
+                      Ver ficha
+                    </Link>
+                  </div>
+                </>
+              )}
+            </SummaryCard>
+
+            <SummaryCard icon={BanknoteIcon} label="Cuánto">
+              <p className="text-lg font-semibold">{formatPrice(b.price)}</p>
+              {(b.status !== 'CANCELLED' || b.payment.paidAmount > 0) && (
+                <div>
+                  <PaymentStatusBadge payment={b.payment} price={b.price} />
+                </div>
+              )}
+            </SummaryCard>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Historial</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                  <dt className="text-muted-foreground">Origen</dt>
+                  <dd>
+                    <Badge variant="outline">
+                      {BOOKING_SOURCE_LABELS[b.source]}
+                    </Badge>
+                  </dd>
+                  <dt className="text-muted-foreground">Cargada el</dt>
+                  <dd>
+                    {formatDateTime(b.createdAt, tz)}
+                    {b.createdBy && ` por ${b.createdBy.name}`}
+                  </dd>
+                  {b.confirmedAt && (
+                    <>
+                      <dt className="text-muted-foreground">Confirmada el</dt>
+                      <dd>
+                        {formatDateTime(b.confirmedAt, tz)}
+                        {b.confirmedBy && ` por ${b.confirmedBy.name}`}
+                      </dd>
+                    </>
+                  )}
+                  {b.startedAt && (
+                    <>
+                      <dt className="text-muted-foreground">Iniciado el</dt>
+                      <dd>
+                        {formatDateTime(b.startedAt, tz)}
+                        {b.startedBy && ` por ${b.startedBy.name}`}
+                      </dd>
+                    </>
+                  )}
+                  {b.finishedAt && (
+                    <>
+                      <dt className="text-muted-foreground">Finalizado el</dt>
+                      <dd>
+                        {formatDateTime(b.finishedAt, tz)}
+                        {b.finishedBy && ` por ${b.finishedBy.name}`}
+                      </dd>
+                    </>
+                  )}
+                </dl>
+              </CardContent>
+            </Card>
+
+            {b.note && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Nota</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm whitespace-pre-line">
+                  {b.note}
+                </CardContent>
+              </Card>
+            )}
+
+            {b.cancellationReason && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Motivo de cancelación</CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm whitespace-pre-line">
+                  {b.cancellationReason}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </TabsContent>
+
+        <TabsContent value="pagos" className="grid gap-4 md:grid-cols-2">
+          {b.status !== 'CANCELLED' && (
+            <PaymentLinkCard
+              bookingId={b.id}
+              slug={complex.data.slug}
+              customerName={customer?.name ?? null}
+              customerPhone={customer?.phone ?? null}
+              hasBankData={Boolean(
+                complex.data.bankCbu &&
+                complex.data.bankAlias &&
+                complex.data.bankHolderName,
+              )}
+            />
+          )}
+
+          <PaymentsCard
+            booking={b}
+            timezone={tz}
+            onRegister={() => setPaymentTarget(toPaymentTarget(b))}
+            onVoid={(payment) => setVoidTarget({ bookingId: b.id, payment })}
           />
-        )}
+        </TabsContent>
+      </Tabs>
 
-        <PaymentsCard
-          booking={b}
-          timezone={tz}
-          onRegister={() => setPaymentTarget(toPaymentTarget(b))}
-          onVoid={(payment) => setVoidTarget({ bookingId: b.id, payment })}
-        />
-      </div>
-
-      {canAdminCancel(b) && (
-        <Button
-          variant="destructive"
-          className="w-fit"
-          onClick={() =>
-            setCancelTarget({
-              id: b.id,
-              startsAt: b.startsAt,
-              endsAt: b.endsAt,
-              courtName: b.court.name,
-              customerName: customerDisplayName(b.customer),
-              pending,
-            })
-          }
-        >
-          {pending ? 'Rechazar solicitud' : 'Cancelar reserva'}
-        </Button>
-      )}
       {finished && (
         <p className="text-muted-foreground text-sm">Este turno ya pasó.</p>
       )}

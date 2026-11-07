@@ -9,7 +9,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz';
 
 /**
  * Helpers de fecha. Todo lo que se muestra al usuario se formatea en el timezone
@@ -36,6 +36,11 @@ export function dateParamOf(iso: string | Date, tz: string): string {
 
 export function todayInTz(tz: string, now: Date = new Date()): string {
   return dateParamOf(now, tz);
+}
+
+/** Instante UTC (ISO) de las 00:00 de `dateParam` en el timezone `tz`. */
+export function startOfDayIso(dateParam: string, tz: string): string {
+  return fromZonedTime(`${dateParam}T00:00:00`, tz).toISOString();
 }
 
 export function addDaysToParam(dateParam: string, days: number): string {

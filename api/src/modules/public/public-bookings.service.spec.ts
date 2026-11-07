@@ -91,6 +91,19 @@ describe('PublicBookingsService', () => {
     expect(items.map((i) => i.customerName)).toEqual(['Ana', null]);
   });
 
+  it('hides fully paid bookings but keeps partially paid ones', async () => {
+    findMany.mockResolvedValue([
+      row({ id: 'paid', payments: [{ amount: 10000, voidedAt: null }] }),
+      row({ id: 'partial', payments: [{ amount: 1000, voidedAt: null }] }),
+      row({
+        id: 'voided',
+        payments: [{ amount: 10000, voidedAt: new Date() }],
+      }),
+    ]);
+    const items = await service.list(complexFixture);
+    expect(items.map((i) => i.id)).toEqual(['partial', 'voided']);
+  });
+
   it('summarizes payments ignoring voided ones and flags pending proofs', async () => {
     findMany.mockResolvedValue([
       row({

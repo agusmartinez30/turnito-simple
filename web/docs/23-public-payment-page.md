@@ -20,7 +20,7 @@ Los turnos `PENDING` (solicitudes sin confirmar) **no** aparecen en la lista, pe
 
 | Ruta | Layout | Auth | Descripción |
 |---|---|---|---|
-| `/app/[slug]` | `(open)` | **Ninguna** | Landing del QR: lista de turnos recientes para elegir el propio |
+| `/app/[slug]` | `(open)` | **Ninguna** | Landing del QR: lista de turnos recientes (sin los ya pagados en su totalidad) para elegir el propio |
 | `/app/[slug]/pagar/[id]` | `(open)` | **Ninguna** | Estado del pago de la reserva `id`: resumen, datos bancarios y subida del comprobante |
 
 ### Landing del QR — `/app/[slug]`
@@ -37,33 +37,33 @@ Los turnos `PENDING` (solicitudes sin confirmar) **no** aparecen en la lista, pe
 
 `src/features/admin-settings/components/PaymentQrCard.tsx`, montada en `SettingsPage`. Genera con `qrcode.react` (`QRCodeSVG`) el QR de `${origin}/app/${slug}` (el origin se lee en el cliente, igual que `PaymentLinkCard`). Acciones: **Copiar** el link, **Descargar** el QR como SVG (`qr-pago-<slug>.svg`) e **Imprimir** (`window.print()`; con utilidades `print:` se oculta todo salvo `#payment-qr-print`: nombre del complejo, QR grande y "Escaneá, elegí tu turno y pagá"). Si faltan CBU, alias o titular, la descripción avisa que primero hay que cargar los datos bancarios.
 
-`page.tsx` es fino y monta `PublicPaymentView`. El link lo arma el admin desde el detalle de la reserva (`PaymentLinkCard`, [`12-admin-payments.md`](./12-admin-payments.md)). Código: `src/features/public-payment/{api,hooks,schemas}.ts` + `components/PublicPaymentView.tsx`.
+`page.tsx` es fino y monta `PublicPaymentView`. El link lo arma el admin desde el detalle de la reserva (`PaymentLinkCard`, [`12-admin-payments.md`](./12-admin-payments.md)). Código: `src/features/public-payment/{api,hooks,schemas}.ts` + `components/` (`PublicPaymentView` contenedor; `BookingSummaryCard`, `BankTransferCard`, `PaymentForm`, `ProofUploadField`).
 
 ## UI
 
-Título "Pagar tu turno" + resumen de la reserva (`BookingSummary`: cancha, fecha y horario en el timezone del complejo, y `Total` / `Ya pagado` / `En revisión` —solo si `pendingProofsAmount > 0`— / **`Saldo a pagar`** destacado = `booking.remaining`, con `data-testid="payment-remaining"`). Debajo, según `remaining`, `pendingAmount` y `proofs.pendingCount` del `GET`:
+Título "Pagar tu turno" + resumen de la reserva (`BookingSummaryCard`: cancha como título, fecha y horario con íconos en el timezone del complejo, badge de estado discreto —`Comprobante en revisión` / `Pagado` / `Pago parcial`—, y `Total del turno` / `Total abonado` / `En revisión` —solo si `pendingProofsAmount > 0`— con importes a la derecha / **`Saldo pendiente del turno`** en un contenedor de fondo suave = `booking.remaining`, con `data-testid="payment-remaining"`). Debajo, según `remaining`, `pendingAmount` y `proofs.pendingCount` del `GET`:
 
 | Situación | Qué se ve |
 |---|---|
-| `remaining > 0` | Datos bancarios (`BankCard`) con botón copiar por fila (CBU / CVU, Alias, Titular; las filas vacías no se muestran) y el formulario "Tu comprobante". Si además `proofs.pendingCount > 0`, una alerta "Hay N comprobante(s) en revisión" (ya descontados del saldo) |
+| `remaining > 0` | Datos bancarios (`BankTransferCard`, "Transferí a la cuenta del complejo deportivo") con botón copiar por campo y feedback "Copiado" (Alias destacado, CBU / CVU, Titular; las filas vacías no se muestran; los valores largos se parten sin desbordar) y el formulario "Informar transferencia". Si además `proofs.pendingCount > 0`, una alerta "Hay N comprobante(s) en revisión" (ya descontados del saldo) |
 | `remaining <= 0` y `pendingAmount <= 0` | Alerta "Turno pago, ¡gracias!". Sin formulario |
 | `remaining <= 0` y `pendingAmount > 0` (`fullyCovered`) | Alerta "Ya está cubierto, pendiente de revisión" (aclara que si rechazan alguno el saldo vuelve a estar disponible). Sin formulario |
 | Tras un envío exitoso | Alerta "Comprobante enviado, pendiente de revisión" con el monto enviado y el saldo restante actualizado; si `remaining > 0`, botón **Enviar otro comprobante** (incrementa un `key` que remonta el formulario vacío, sin `form.reset()`) |
 
 Un comprobante rechazado simplemente reabre el saldo: la API deja de contarlo y la página no muestra el rechazo ni su motivo. La query se refresca cada 30 s mientras `proofs.pendingCount > 0`.
 
-**Complejo sin datos bancarios** (CBU, alias y titular vacíos): la `BankCard` dice "El complejo todavía no cargó sus datos bancarios. Comunicate con el complejo para coordinar el pago." y **no** se muestra el formulario.
+**Complejo sin datos bancarios** (CBU, alias y titular vacíos): la `BankTransferCard` dice "El complejo todavía no cargó sus datos bancarios. Comunicate con el complejo para coordinar el pago." y **no** se muestra el formulario.
 
 **Formulario** (react-hook-form + zod, `mode: 'onChange'`):
 
 | Campo | Regla |
 |---|---|
-| "Nombre de quien paga" | requerido, trim, 1..100 |
-| "Cantidad de jugadores que paga" (opcional) | entero 1..50; vacío = no se envía |
-| "Monto del comprobante" | requerido, entero ≥ 1 y ≤ `remaining`; hint "Saldo a pagar: $X" con el botón "Usar el saldo completo" (`setValue`) |
-| Comprobante | `<input type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">` (`data-testid="payment-proof-input"`), tarjeta con nombre y tamaño y botón "Quitar archivo" |
+| "Nombre de quien paga" | requerido, trim, 1..100; placeholder "Ej. Juan Pérez" |
+| "Importe transferido" | requerido, prefijo "$", entero ≥ 1. **Nunca se autocompleta** ni se divide por jugador (no hay "Usar el saldo completo"). Si supera el saldo pendiente se muestra una advertencia **no bloqueante**; la API sigue siendo la autoridad y su error aparece bajo el campo |
+| "Cantidad de jugadores" (opcional) | entero 1..50; vacío = no se envía; nunca afecta el monto |
+| Comprobante (`ProofUploadField`) | `<input type="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png">` (`data-testid="payment-proof-input"`); zona de carga "Adjuntar comprobante · PDF, JPG o PNG · máx. 5 MB"; con archivo válido, tarjeta de éxito con nombre, ícono de tipo, tamaño y acciones Reemplazar / Quitar; los errores de tipo o tamaño se ven bajo el campo |
 
-El esquema se arma con `buildProofFormSchema(remaining)` (`schemas.ts`); los campos numéricos viajan como string y se convierten en `parseProofForm`. "Confirmar pago" queda deshabilitado hasta que el form sea válido **y** haya un archivo válido, y mientras envía ("Enviando…"). El `POST` manda `payerName`, `playersCount?`, `amount` y `file` como multipart.
+El esquema es `buildProofFormSchema()` (`schemas.ts`, sin tope por saldo; `isAmountOverBalance` alimenta la advertencia); los campos numéricos viajan como string y se convierten en `parseProofForm`. "Enviar comprobante" (ancho completo) queda deshabilitado hasta que el form sea válido **y** haya un archivo válido, y mientras envía ("Enviando…", sin envíos duplicados). Debajo: "El complejo verificará tu transferencia". El `POST` manda `payerName`, `playersCount?`, `amount` y `file` como multipart.
 
 ## Reglas de negocio y validaciones
 
@@ -85,7 +85,7 @@ Un archivo inválido no se guarda en el estado del form y no se envía. La API v
 | `POST` → `UNSUPPORTED_FILE_TYPE` / `FILE_TOO_LARGE` / otro `VALIDATION_ERROR` (p. ej. `details.file`) / `RATE_LIMITED` / red | `ErrorAlert` sobre el formulario; elegir otro archivo limpia el error |
 | Otro error en el `GET` | `ErrorAlert` + "Reintentar" |
 
-Copiar un dato bancario: toast "{campo} copiado"; si el portapapeles falla, "No se pudo copiar. Copialo a mano."
+Copiar un dato bancario: el botón cambia a "Copiado" ~2 s; si el portapapeles falla, "No se pudo copiar. Copialo a mano."
 
 ## Contrato API
 
@@ -115,7 +115,7 @@ El descuento es **visual**: el pago real se registra cuando el admin aprueba. Va
 
 ## Verificación
 
-**No se ejercitó en un navegador durante la implementación** (ni la versión con nombre/monto, ni la landing del QR, ni la `PaymentQrCard` con su descarga e impresión): solo hubo `pnpm typecheck`, eslint y `next build` (limpios). Los estados y errores de arriba salen de leer el código, no de haberlos visto andar. La web no tiene test runner.
+**El rediseño de la pantalla de pago no se ejercitó en un navegador** (solo `pnpm typecheck` y eslint limpios); (ni la versión con nombre/monto, ni la landing del QR, ni la `PaymentQrCard` con su descarga e impresión): solo hubo `pnpm typecheck`, eslint y `next build` (limpios). Los estados y errores de arriba salen de leer el código, no de haberlos visto andar. La web no tiene test runner.
 
 ## Criterios de aceptación
 
@@ -123,9 +123,9 @@ El descuento es **visual**: el pago real se registra cuando el admin aprueba. Va
 - [ ] Un slug inexistente muestra "Complejo no encontrado"; sin turnos, el mensaje de lista vacía.
 - [ ] En Ajustes, la card "QR de pago" muestra el QR de `/app/<slug>`; copiar, descargar e imprimir funcionan (al imprimir solo sale el QR).
 
-- [ ] Reserva con saldo: se ven resumen con "Saldo a pagar", datos bancarios con copiar y el formulario; "Confirmar pago" queda deshabilitado hasta completar nombre, monto válido (≤ saldo) y comprobante válido (PDF, JPG o PNG).
+- [ ] Reserva con saldo: se ven resumen con "Saldo a pagar", datos bancarios con copiar y el formulario; "Enviar comprobante" queda deshabilitado hasta completar nombre, monto válido (≤ saldo) y comprobante válido (PDF, JPG o PNG).
 - [ ] Un envío exitoso muestra el monto enviado y el saldo actualizado, y permite "Enviar otro comprobante" con el formulario vacío.
-- [ ] Un monto mayor al saldo muestra el error bajo el campo.
+- [ ] Un monto mayor al saldo muestra una advertencia no bloqueante; si la API lo rechaza, el error aparece bajo el campo.
 - [ ] Con el saldo cubierto por comprobantes en revisión se ve "Ya está cubierto, pendiente de revisión" sin formulario; si el admin rechaza uno, el saldo vuelve y reaparece el formulario.
 - [ ] Un archivo que no es PDF, JPG o PNG o pesa más de 5 MB se rechaza en el cliente con su mensaje.
 - [ ] Tras aprobar todo desde el panel, el link muestra "Turno pago, ¡gracias!".

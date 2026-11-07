@@ -2,13 +2,13 @@
 
 import {
   BanknoteIcon,
+  Building2Icon,
   CalendarDaysIcon,
   ChevronDownIcon,
   ExternalLinkIcon,
   LandPlotIcon,
   LogOutIcon,
   MenuIcon,
-  SettingsIcon,
   UserIcon,
   UsersIcon,
   VolleyballIcon,
@@ -58,8 +58,8 @@ const NAV_ITEMS = [
   },
   {
     href: '/admin/settings',
-    label: 'Configuración',
-    icon: SettingsIcon,
+    label: 'Mi complejo',
+    icon: Building2Icon,
   },
 ] as const;
 
@@ -81,7 +81,7 @@ function navItemClass(active: boolean): string {
     'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
     NAV_FOCUS,
     active
-      ? 'bg-sidebar-active text-sidebar-foreground before:bg-highlight relative font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r-full [&>svg]:text-highlight'
+      ? 'bg-sidebar-active text-sidebar-foreground before:bg-sidebar-primary relative font-medium before:absolute before:inset-y-1.5 before:left-0 before:w-[3px] before:rounded-r-full [&>svg]:text-sidebar-primary'
       : 'text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
   );
 }

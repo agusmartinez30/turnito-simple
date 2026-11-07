@@ -47,7 +47,7 @@ export class PublicBookingsService {
   ) {}
 
   /**
-   * Only CONFIRMED bookings: PENDING requests are not yet agreed with the complex (and expire),
+   * Only CONFIRMED, not fully paid bookings: PENDING requests are not yet agreed with the complex (and expire),
    * CANCELLED ones cannot be paid.
    */
   async list(complex: Complex): Promise<PublicBookingListItem[]> {
@@ -86,8 +86,13 @@ export class PublicBookingsService {
       },
     });
 
-    return rows.map((b) => {
+    // Fully paid bookings have nothing left to do at the venue: hide them.
+    const open = rows.flatMap((b) => {
       const summary = computePaymentSummary(b.price, b.payments);
+      return summary.status === 'PAID' ? [] : [{ b, summary }];
+    });
+
+    return open.map(({ b, summary }) => {
       return {
         id: b.id,
         court: { name: b.court.name, sport: b.court.sport },
