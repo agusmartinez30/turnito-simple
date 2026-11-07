@@ -31,6 +31,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { usePendingCount } from '@/features/admin-bookings/hooks';
 import { ComplexMark } from '@/components/layout/ComplexMark';
 import { useLogout, useMe } from '@/features/auth/hooks';
+import { NotificationBell } from '@/features/notifications/components/NotificationBell';
 import { useComplex } from '@/features/complex/hooks';
 import { APP_NAME } from '@/lib/app-name';
 import { cn } from '@/lib/utils';
@@ -196,17 +197,20 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       />
       {/* Sidebar (lg+) */}
       <aside className="bg-sidebar text-sidebar-foreground sticky top-0 hidden h-svh w-60 shrink-0 flex-col lg:flex">
-        <Link
-          href="/admin/bookings"
-          className={cn(
-            'border-sidebar-border flex h-14 items-center gap-2 border-b px-4 font-semibold',
-            NAV_FOCUS,
-          )}
-          aria-label="Reservas"
-        >
-          {mark}
-          <span className="truncate">{complexName}</span>
-        </Link>
+        <div className="border-sidebar-border flex h-14 items-center border-b pr-2">
+          <Link
+            href="/admin/bookings"
+            className={cn(
+              'flex h-full min-w-0 flex-1 items-center gap-2 px-4 font-semibold',
+              NAV_FOCUS,
+            )}
+            aria-label="Reservas"
+          >
+            {mark}
+            <span className="truncate">{complexName}</span>
+          </Link>
+          <NotificationBell className="text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring/50 size-9 shrink-0" />
+        </div>
         <nav className="flex flex-1 flex-col gap-1 p-3" aria-label="Panel">
           {NAV_ITEMS.map((item) => {
             const active = isActive(pathname, item);
@@ -262,7 +266,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             {mark}
             <span className="truncate">{complexName}</span>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-1">
+            <NotificationBell className="size-11" />
             <UserMenu />
           </div>
         </header>

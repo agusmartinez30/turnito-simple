@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
 import { io } from 'socket.io-client';
 import { toast } from 'sonner';
+import { notificationKeys } from '@/features/notifications/hooks';
+import type { NotificationCreatedEvent } from '@/features/notifications/types';
 import { API_BASE_URL } from '@/lib/api/client';
 import { getAccessToken } from '@/lib/api/session-token';
+import { formatPrice } from '@/lib/date';
 import {
   invalidatePaymentChanged,
   type PaymentChangedEvent,
@@ -32,6 +36,12 @@ export function AdminRealtimeProvider({
   children: React.ReactNode;
 }) {
   const queryClient = useQueryClient();
+  const router = useRouter();
+  const routerRef = useRef(router);
+
+  useEffect(() => {
+    routerRef.current = router;
+  }, [router]);
 
   useEffect(() => {
     const url = resolveNamespaceUrl();
@@ -52,15 +62,30 @@ export function AdminRealtimeProvider({
 
       socket.on('payment.changed', (event: PaymentChangedEvent) => {
         try {
+          // The detailed toast for a new proof comes from `notification.created`.
           invalidatePaymentChanged(queryClient, event);
-          if (event.kind === 'proof_submitted') {
-            const now = Date.now();
-            const last = lastToastAt.get(event.bookingId) ?? 0;
-            if (now - last > TOAST_DEDUPE_MS) {
-              lastToastAt.set(event.bookingId, now);
-              toast.info('Nuevo comprobante recibido');
-            }
-          }
+        } catch {
+          // Polling will catch up.
+        }
+      });
+
+      socket.on('notification.created', (event: NotificationCreatedEvent) => {
+        try {
+          void queryClient.invalidateQueries({
+            queryKey: notificationKeys.all,
+          });
+          const now = Date.now();
+          const last = lastToastAt.get(event.notificationId) ?? 0;
+          if (now - last <= TOAST_DEDUPE_MS) return;
+          lastToastAt.set(event.notificationId, now);
+          toast.info('Nuevo comprobante recibido', {
+            description: `${event.payerName} declaró ${formatPrice(event.declaredAmount)}`,
+            action: {
+              label: 'Ver reserva',
+              onClick: () =>
+                routerRef.current.push(`/admin/bookings/${event.bookingId}`),
+            },
+          });
         } catch {
           // Polling will catch up.
         }
