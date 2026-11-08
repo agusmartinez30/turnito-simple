@@ -6,6 +6,8 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { slugify, uniqueSlug } from '../../shared/slug';
 
 export const COMPLEX_NOT_FOUND_MESSAGE = 'Complejo no encontrado.';
+export const COMPLEX_SUSPENDED_PUBLIC_MESSAGE =
+  'Este complejo no está disponible por el momento.';
 
 export interface CreateComplexInput {
   name: string;
@@ -47,6 +49,21 @@ export class ComplexService {
       throw new AppException(ErrorCode.NOT_FOUND, COMPLEX_NOT_FOUND_MESSAGE);
     }
     this.remember(complex);
+    return complex;
+  }
+
+  /**
+   * Like findBySlugOrThrow for the public endpoints: a suspended complex is rejected with
+   * 403 COMPLEX_SUSPENDED (docs/26-super-admin.md). The cache is invalidated on suspension.
+   */
+  async findPublicBySlugOrThrow(slug: string): Promise<Complex> {
+    const complex = await this.findBySlugOrThrow(slug);
+    if (complex.suspendedAt) {
+      throw new AppException(
+        ErrorCode.COMPLEX_SUSPENDED,
+        COMPLEX_SUSPENDED_PUBLIC_MESSAGE,
+      );
+    }
     return complex;
   }
 

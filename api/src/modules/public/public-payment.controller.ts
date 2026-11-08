@@ -45,7 +45,7 @@ export class PublicPaymentController {
     @Param('slug') slug: string,
     @Param('id', uuidParam('id')) id: string,
   ): Promise<PublicPaymentResponse> {
-    const complex = await this.complex.findBySlugOrThrow(slug);
+    const complex = await this.complex.findPublicBySlugOrThrow(slug);
     return this.payments.view(complex, id);
   }
 

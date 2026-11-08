@@ -19,6 +19,7 @@ import { CustomersModule } from './modules/customers/customers.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { PublicModule } from './modules/public/public.module';
 import { RealtimeModule } from './modules/realtime/realtime.module';
+import { SuperAdminModule } from './modules/super-admin/super-admin.module';
 import { UsersModule } from './modules/users/users.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { BookingCoreModule } from './shared/bookings/booking-core.module';
@@ -44,6 +45,7 @@ import { BookingCoreModule } from './shared/bookings/booking-core.module';
     NotificationsModule,
     PublicModule,
     RealtimeModule,
+    SuperAdminModule,
   ],
   controllers: [HealthController],
   // Order matters: JwtAuthGuard resolves `req.user`; RolesGuard reads it.

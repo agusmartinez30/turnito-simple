@@ -14,12 +14,12 @@ describe('Database constraints & seed', () => {
     await resetDatabase();
   });
 
-  it('el seed es idempotente: 2 complejos, 10 canchas, 4 usuarios, 4 clientes', async () => {
+  it('el seed es idempotente: 2 complejos, 10 canchas, 5 usuarios, 4 clientes', async () => {
     await seed(prisma, { includeUsers: true });
     await seed(prisma, { includeUsers: true });
     expect(await prisma.complex.count()).toBe(2);
     expect(await prisma.court.count()).toBe(10);
-    expect(await prisma.user.count()).toBe(4);
+    expect(await prisma.user.count()).toBe(5);
     expect(await prisma.customer.count()).toBe(4);
     expect(
       await prisma.user.count({
@@ -54,7 +54,7 @@ describe('Database constraints & seed', () => {
     await resetDatabase();
     expect(Date.now() - started).toBeLessThan(3000);
     expect(await prisma.booking.count()).toBe(0);
-    expect(await prisma.user.count()).toBe(4);
+    expect(await prisma.user.count()).toBe(5);
     expect(await prisma.customer.count()).toBe(4);
   });
 

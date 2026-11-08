@@ -26,6 +26,7 @@ const complex: Complex = {
   bankCbu: null,
   bankAlias: null,
   bankHolderName: null,
+  suspendedAt: null,
   createdAt: NOW,
   updatedAt: NOW,
 };
