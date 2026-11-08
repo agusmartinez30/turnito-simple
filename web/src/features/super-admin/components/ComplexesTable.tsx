@@ -1,6 +1,7 @@
 'use client';
 
 import { format, parseISO } from 'date-fns';
+import Link from 'next/link';
 import { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -52,7 +53,12 @@ export function ComplexesTable({
               return (
                 <TableRow key={c.id}>
                   <TableCell>
-                    <div className="font-medium">{c.name}</div>
+                    <Link
+                      href={`/admin/complexes/${c.id}`}
+                      className="font-medium hover:underline"
+                    >
+                      {c.name}
+                    </Link>
                     <div className="text-muted-foreground text-xs">
                       {c.slug}
                     </div>

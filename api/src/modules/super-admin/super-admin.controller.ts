@@ -7,6 +7,7 @@ import { ListSuperAdminComplexesDto } from './dto/list-super-admin-complexes.dto
 import { SetSuspensionDto } from './dto/set-suspension.dto';
 import {
   SuperAdminComplexResponse,
+  SuperAdminRevenueResponse,
   SuperAdminService,
 } from './super-admin.service';
 
@@ -23,6 +24,14 @@ export class SuperAdminController {
     @Query() query: ListSuperAdminComplexesDto,
   ): Promise<SuperAdminComplexResponse[]> {
     return this.superAdmin.listComplexes(query.month);
+  }
+
+  @Get(':id/revenue')
+  revenue(
+    @Param('id', uuidParam('id')) id: string,
+    @Query() query: ListSuperAdminComplexesDto,
+  ): Promise<SuperAdminRevenueResponse> {
+    return this.superAdmin.revenueFor(id, query.month);
   }
 
   @Patch(':id/suspension')

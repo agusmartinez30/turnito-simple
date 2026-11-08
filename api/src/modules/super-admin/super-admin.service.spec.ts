@@ -1,5 +1,9 @@
 import { Test } from '@nestjs/testing';
-import { BookingStatus, PaymentProofStatus } from '@prisma/client';
+import {
+  BookingStatus,
+  PaymentMethod,
+  PaymentProofStatus,
+} from '@prisma/client';
 import { ErrorCode } from '../../common/errors/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
 import { Clock, FixedClock } from '../../shared/time/clock';
@@ -34,7 +38,7 @@ describe('SuperAdminService', () => {
     findUnique: jest.Mock;
     update: jest.Mock;
   };
-  let booking: { groupBy: jest.Mock };
+  let booking: { groupBy: jest.Mock; findMany: jest.Mock };
   let paymentProof: { findMany: jest.Mock };
   let invalidate: jest.Mock;
 
@@ -44,7 +48,10 @@ describe('SuperAdminService', () => {
       findUnique: jest.fn(),
       update: jest.fn(),
     };
-    booking = { groupBy: jest.fn().mockResolvedValue([]) };
+    booking = {
+      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn().mockResolvedValue([]),
+    };
     paymentProof = { findMany: jest.fn().mockResolvedValue([]) };
     invalidate = jest.fn();
 
@@ -228,6 +235,116 @@ describe('SuperAdminService', () => {
         code: ErrorCode.NOT_FOUND,
       });
       expect(complexModel.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('revenueFor', () => {
+    const payment = (amount: number, method: PaymentMethod) => ({
+      amount,
+      method,
+    });
+    const bookingRow = (
+      id: string,
+      price: number,
+      payments: ReturnType<typeof payment>[],
+      overrides: Record<string, unknown> = {},
+    ) => ({
+      id,
+      startsAt: new Date('2026-09-10T20:00:00Z'),
+      price,
+      court: { name: 'Cancha 1' },
+      customer: { firstName: 'Ana', lastName: 'Gomez' },
+      payments,
+      ...overrides,
+    });
+
+    it('splits each booking into transfer and cash and sums the month totals', async () => {
+      complexModel.findUnique.mockResolvedValue(row('a', ['a1']));
+      booking.findMany.mockResolvedValue([
+        bookingRow('b1', 10000, [
+          payment(4000, PaymentMethod.TRANSFER),
+          payment(2000, PaymentMethod.CASH),
+          payment(1000, PaymentMethod.TRANSFER),
+        ]),
+        bookingRow('b2', 8000, [payment(8000, PaymentMethod.CASH)], {
+          customer: null,
+        }),
+      ]);
+
+      const result = await service.revenueFor('a', '2026-09');
+
+      expect(result.complex).toEqual({
+        id: 'a',
+        name: 'Complejo a',
+        slug: 'slug-a',
+        suspendedAt: null,
+        timezone: BA,
+      });
+      expect(result.month).toBe('2026-09');
+      expect(result.bookings[0]).toEqual({
+        id: 'b1',
+        startsAt: '2026-09-10T20:00:00.000Z',
+        courtName: 'Cancha 1',
+        customerName: 'Ana Gomez',
+        price: 10000,
+        transferAmount: 5000,
+        cashAmount: 2000,
+        paidTotal: 7000,
+        balance: 3000,
+      });
+      expect(result.bookings[1]).toMatchObject({
+        customerName: null,
+        transferAmount: 0,
+        cashAmount: 8000,
+        balance: 0,
+      });
+      expect(result.totals).toEqual({
+        bookingsCount: 2,
+        transferTotal: 5000,
+        cashTotal: 10000,
+        paidTotal: 15000,
+      });
+    });
+
+    it('queries non-cancelled bookings of the complex in the month bounds with only live payments', async () => {
+      complexModel.findUnique.mockResolvedValue(row('a', ['a1']));
+
+      await service.revenueFor('a', '2026-09');
+
+      const args = booking.findMany.mock.calls[0][0];
+      expect(args.where.court).toEqual({ complexId: 'a' });
+      expect(args.where.status).toEqual({ not: BookingStatus.CANCELLED });
+      expect(args.where.startsAt.gte).toEqual(
+        new Date('2026-09-01T00:00:00-03:00'),
+      );
+      expect(args.where.startsAt.lt).toEqual(
+        new Date('2026-10-01T00:00:00-03:00'),
+      );
+      expect(args.select.payments.where).toEqual({ voidedAt: null });
+    });
+
+    it('defaults to the current month in the complex timezone and handles empty months', async () => {
+      complexModel.findUnique.mockResolvedValue(row('a', ['a1']));
+
+      const result = await service.revenueFor('a');
+
+      expect(result.month).toBe('2026-09');
+      expect(result.bookings).toEqual([]);
+      expect(result.totals).toEqual({
+        bookingsCount: 0,
+        transferTotal: 0,
+        cashTotal: 0,
+        paidTotal: 0,
+      });
+    });
+
+    it('unknown complex → NOT_FOUND', async () => {
+      complexModel.findUnique.mockResolvedValue(null);
+
+      await expect(service.revenueFor('nope')).rejects.toMatchObject({
+        code: ErrorCode.NOT_FOUND,
+      });
+      expect(booking.findMany).not.toHaveBeenCalled();
     });
   });
 });

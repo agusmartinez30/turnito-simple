@@ -1,5 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { BookingStatus, PaymentProofStatus, Prisma } from '@prisma/client';
+import {
+  BookingStatus,
+  PaymentMethod,
+  PaymentProofStatus,
+  Prisma,
+} from '@prisma/client';
 import { AppException } from '../../common/errors/app.exception';
 import { ErrorCode } from '../../common/errors/error-codes';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -32,6 +37,41 @@ export interface SuperAdminComplexResponse {
   /** null when there are no bookings. */
   proofsPerBooking: number | null;
   approvedProofsPerBooking: number | null;
+}
+
+/** Revenue of one complex in a month, per booking (docs/26-super-admin.md). */
+export interface SuperAdminRevenueBooking {
+  id: string;
+  startsAt: string;
+  courtName: string;
+  customerName: string | null;
+  price: number;
+  /** Non-voided TRANSFER payments (approved payment proofs). */
+  transferAmount: number;
+  /** Non-voided CASH payments. */
+  cashAmount: number;
+  paidTotal: number;
+  /** price - paidTotal (negative when overpaid). */
+  balance: number;
+}
+
+export interface SuperAdminRevenueResponse {
+  complex: {
+    id: string;
+    name: string;
+    slug: string;
+    suspendedAt: Date | null;
+    timezone: string;
+  };
+  /** YYYY-MM, complex timezone. */
+  month: string;
+  bookings: SuperAdminRevenueBooking[];
+  totals: {
+    bookingsCount: number;
+    transferTotal: number;
+    cashTotal: number;
+    paidTotal: number;
+  };
 }
 
 const COMPLEX_SELECT = {
@@ -102,6 +142,102 @@ export class SuperAdminService {
     this.complex.invalidate(id);
     const [summary] = await this.summarize([updated]);
     return summary;
+  }
+
+  /** Per-booking revenue split into transfer vs cash for one complex and month. */
+  async revenueFor(
+    id: string,
+    month?: string,
+  ): Promise<SuperAdminRevenueResponse> {
+    const complex = await this.prisma.complex.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        timezone: true,
+        suspendedAt: true,
+      },
+    });
+    if (!complex) {
+      throw new AppException(ErrorCode.NOT_FOUND, COMPLEX_NOT_FOUND_MESSAGE);
+    }
+    const targetMonth =
+      month ?? todayInTz(this.clock.now(), complex.timezone).slice(0, 7);
+    const first = `${targetMonth}-01`;
+
+    const rows = await this.prisma.booking.findMany({
+      where: {
+        court: { complexId: id },
+        status: { not: BookingStatus.CANCELLED },
+        startsAt: {
+          gte: localTimeToUtc(first, '00:00', complex.timezone),
+          lt: localTimeToUtc(
+            addLocalMonths(first, 1),
+            '00:00',
+            complex.timezone,
+          ),
+        },
+      },
+      orderBy: { startsAt: 'asc' },
+      select: {
+        id: true,
+        startsAt: true,
+        price: true,
+        court: { select: { name: true } },
+        customer: { select: { firstName: true, lastName: true } },
+        payments: {
+          where: { voidedAt: null },
+          select: { amount: true, method: true },
+        },
+      },
+    });
+
+    const totals = {
+      bookingsCount: rows.length,
+      transferTotal: 0,
+      cashTotal: 0,
+      paidTotal: 0,
+    };
+    const bookings = rows.map((b): SuperAdminRevenueBooking => {
+      let transferAmount = 0;
+      let cashAmount = 0;
+      for (const p of b.payments) {
+        if (p.method === PaymentMethod.TRANSFER) transferAmount += p.amount;
+        else cashAmount += p.amount;
+      }
+      const paidTotal = transferAmount + cashAmount;
+      totals.transferTotal += transferAmount;
+      totals.cashTotal += cashAmount;
+      totals.paidTotal += paidTotal;
+      const customerName = b.customer
+        ? [b.customer.firstName, b.customer.lastName].filter(Boolean).join(' ')
+        : null;
+      return {
+        id: b.id,
+        startsAt: b.startsAt.toISOString(),
+        courtName: b.court.name,
+        customerName,
+        price: b.price,
+        transferAmount,
+        cashAmount,
+        paidTotal,
+        balance: b.price - paidTotal,
+      };
+    });
+
+    return {
+      complex: {
+        id: complex.id,
+        name: complex.name,
+        slug: complex.slug,
+        suspendedAt: complex.suspendedAt,
+        timezone: complex.timezone,
+      },
+      month: targetMonth,
+      bookings,
+      totals,
+    };
   }
 
   private async summarize(

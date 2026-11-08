@@ -181,3 +181,36 @@ export interface SuperAdminComplex {
   proofsPerBooking: number | null;
   approvedProofsPerBooking: number | null;
 }
+
+/** Ingresos de un turno, separados en comprobantes (transferencia) y efectivo. */
+export interface SuperAdminRevenueBooking {
+  id: string;
+  startsAt: string;
+  courtName: string;
+  customerName: string | null;
+  price: number;
+  transferAmount: number;
+  cashAmount: number;
+  paidTotal: number;
+  balance: number;
+}
+
+/** Detalle de un complejo para el panel de plataforma (docs/26-super-admin.md). */
+export interface SuperAdminRevenue {
+  complex: {
+    id: string;
+    name: string;
+    slug: string;
+    suspendedAt: string | null;
+    timezone: string;
+  };
+  /** Mes de los datos (YYYY-MM). */
+  month: string;
+  bookings: SuperAdminRevenueBooking[];
+  totals: {
+    bookingsCount: number;
+    transferTotal: number;
+    cashTotal: number;
+    paidTotal: number;
+  };
+}

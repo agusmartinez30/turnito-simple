@@ -1,5 +1,5 @@
 import { api } from '@/lib/api/client';
-import type { SuperAdminComplex } from '@/types/admin';
+import type { SuperAdminComplex, SuperAdminRevenue } from '@/types/admin';
 
 /** `month` is `YYYY-MM`; the API defaults to the current month of each complex. */
 export function listSuperAdminComplexes(
@@ -20,4 +20,14 @@ export function setComplexSuspension(
       body: { suspended },
     },
   );
+}
+
+/** `month` is `YYYY-MM`; the API defaults to the current month of the complex. */
+export function getComplexRevenue(
+  id: string,
+  month?: string,
+): Promise<SuperAdminRevenue> {
+  return api.get<SuperAdminRevenue>(`/super-admin/complexes/${id}/revenue`, {
+    query: { month },
+  });
 }
