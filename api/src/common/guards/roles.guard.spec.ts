@@ -8,7 +8,7 @@ import { RolesGuard } from './roles.guard';
 function contextWith(user?: {
   id: string;
   email: string;
-  role: 'PLAYER' | 'ADMIN';
+  role: 'PLAYER' | 'ADMIN' | 'SUPER_ADMIN';
 }): ExecutionContext {
   const req = { user };
   return {
@@ -72,6 +72,77 @@ describe('RolesGuard', () => {
     expect((err as AppException).message).toBe(
       'No tenés permisos para acceder a esta sección.',
     );
+  });
+
+  it('@Roles(ADMIN) + ADMIN de un complejo suspendido → 403 COMPLEX_SUSPENDED', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    users.findByIdOrThrow.mockResolvedValue({
+      id: 'u1',
+      role: 'ADMIN',
+      complexId: 'c1',
+      complex: { suspendedAt: new Date('2026-09-01T00:00:00Z') },
+    });
+    const err = await guard
+      .canActivate(contextWith({ id: 'u1', email: 'a', role: 'ADMIN' }))
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(AppException);
+    expect((err as AppException).code).toBe(ErrorCode.COMPLEX_SUSPENDED);
+  });
+
+  it('@Roles(ADMIN) + ADMIN de un complejo activo → pasa', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    users.findByIdOrThrow.mockResolvedValue({
+      id: 'u1',
+      role: 'ADMIN',
+      complexId: 'c1',
+      complex: { suspendedAt: null },
+    });
+    await expect(
+      guard.canActivate(contextWith({ id: 'u1', email: 'a', role: 'ADMIN' })),
+    ).resolves.toBe(true);
+  });
+
+  it('@Roles(SUPER_ADMIN) + SUPER_ADMIN sin complejo → pasa', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['SUPER_ADMIN']);
+    users.findByIdOrThrow.mockResolvedValue({
+      id: 'u1',
+      role: 'SUPER_ADMIN',
+      complexId: null,
+      complex: null,
+    });
+    await expect(
+      guard.canActivate(
+        contextWith({ id: 'u1', email: 'a', role: 'SUPER_ADMIN' }),
+      ),
+    ).resolves.toBe(true);
+  });
+
+  it('@Roles(SUPER_ADMIN) + usuario ADMIN → FORBIDDEN', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['SUPER_ADMIN']);
+    users.findByIdOrThrow.mockResolvedValue({
+      id: 'u1',
+      role: 'ADMIN',
+      complexId: 'c1',
+      complex: { suspendedAt: null },
+    });
+    await expect(
+      guard.canActivate(contextWith({ id: 'u1', email: 'a', role: 'ADMIN' })),
+    ).rejects.toMatchObject({ code: ErrorCode.FORBIDDEN });
+  });
+
+  it('@Roles(ADMIN) + SUPER_ADMIN → FORBIDDEN (no entra a las rutas de complejo)', async () => {
+    reflector.getAllAndOverride.mockReturnValue(['ADMIN']);
+    users.findByIdOrThrow.mockResolvedValue({
+      id: 'u1',
+      role: 'SUPER_ADMIN',
+      complexId: null,
+      complex: null,
+    });
+    await expect(
+      guard.canActivate(
+        contextWith({ id: 'u1', email: 'a', role: 'SUPER_ADMIN' }),
+      ),
+    ).rejects.toMatchObject({ code: ErrorCode.FORBIDDEN });
   });
 
   it('@Roles sin req.user (mal combinado con @Public) → UNAUTHORIZED', async () => {

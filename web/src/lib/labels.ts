@@ -58,6 +58,7 @@ export function customerDisplayName(
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
   PLAYER: 'Jugador',
   ADMIN: 'Administrador',
+  SUPER_ADMIN: 'Superadministrador',
 };
 
 /** Pagos por turno (docs/12-admin-payments.md). */

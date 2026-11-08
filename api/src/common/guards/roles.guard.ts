@@ -11,11 +11,15 @@ import { ErrorCode } from '../errors/error-codes';
 export const FORBIDDEN_ROLE_MESSAGE =
   'No tenés permisos para acceder a esta sección.';
 
+export const COMPLEX_SUSPENDED_ADMIN_MESSAGE =
+  'Tu complejo está suspendido. Contactá a soporte para reactivarlo.';
+
 /**
  * Guard global registrado después de JwtAuthGuard: `req.user` ya está resuelto.
  * Solo actúa sobre handlers/controllers con @Roles(). El rol se lee de la DB, no del token,
  * para que una degradación (admin:demote) aplique de inmediato (docs/05-admin-overview.md).
  * También refresca `complexId`: @ComplexId() siempre ve el complejo actual del admin.
+ * Un ADMIN cuyo complejo está suspendido recibe 403 COMPLEX_SUSPENDED (docs/26-super-admin.md).
  */
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -45,6 +49,12 @@ export class RolesGuard implements CanActivate {
     const dbUser = await this.users.findByIdOrThrow(req.user.id);
     if (!required.includes(dbUser.role)) {
       throw new AppException(ErrorCode.FORBIDDEN, FORBIDDEN_ROLE_MESSAGE);
+    }
+    if (dbUser.role === UserRole.ADMIN && dbUser.complex?.suspendedAt) {
+      throw new AppException(
+        ErrorCode.COMPLEX_SUSPENDED,
+        COMPLEX_SUSPENDED_ADMIN_MESSAGE,
+      );
     }
     req.user.role = dbUser.role;
     req.user.complexId = dbUser.complexId;

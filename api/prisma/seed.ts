@@ -217,6 +217,14 @@ export const SEED_USERS = [
     role: UserRole.ADMIN,
     complexSlug: SEED_COMPLEX_2.slug,
   },
+  {
+    // Platform operator: no complex (CHECK users_super_admin_no_complex_chk).
+    name: 'Super Admin',
+    email: 'superadmin@demo.com',
+    phone: null,
+    role: UserRole.SUPER_ADMIN,
+    complexSlug: null,
+  },
 ];
 
 export interface SeedOptions {

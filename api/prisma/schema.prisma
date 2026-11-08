@@ -23,6 +23,7 @@ enum BookingStatus {
 enum UserRole {
   PLAYER
   ADMIN
+  SUPER_ADMIN // platform operator: no complex (CHECK users_super_admin_no_complex_chk)
 }
 
 enum PaymentMethod {
@@ -72,6 +73,8 @@ model Complex {
   bankCbu                   String?  @map("bank_cbu") @db.VarChar(22)
   bankAlias                 String?  @map("bank_alias") @db.VarChar(20)
   bankHolderName            String?  @map("bank_holder_name") @db.VarChar(100)
+  /// Set by a SUPER_ADMIN to suspend the complex: its admins get COMPLEX_SUSPENDED and the public app rejects it. null = active.
+  suspendedAt               DateTime? @map("suspended_at") @db.Timestamptz(3)
   createdAt                 DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                 DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -115,7 +118,7 @@ model User {
   phone        String?
   passwordHash String   @map("password_hash")
   role         UserRole @default(PLAYER)
-  complexId    String?  @map("complex_id") // ADMIN: obligatorio (CHECK users_admin_has_complex_chk); PLAYER: null, es global
+  complexId    String?  @map("complex_id") // ADMIN: obligatorio (CHECK users_admin_has_complex_chk); PLAYER y SUPER_ADMIN: null
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 

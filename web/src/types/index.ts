@@ -61,7 +61,7 @@ export type BookingStatus = 'PENDING' | 'CONFIRMED' | 'CANCELLED';
 /** Quién canceló una reserva: un admin desde el panel o el vencimiento automático. */
 export type BookingActor = 'ADMIN' | 'SYSTEM';
 
-export type UserRole = 'PLAYER' | 'ADMIN';
+export type UserRole = 'PLAYER' | 'ADMIN' | 'SUPER_ADMIN';
 
 export type CourtSummary = Pick<
   Court,
@@ -121,6 +121,7 @@ export type ErrorCode =
   | 'BOOKING_NOT_PAYABLE'
   | 'PAYMENT_ALREADY_VOIDED'
   | 'PAYMENT_PROOF_NOT_PENDING'
+  | 'COMPLEX_SUSPENDED'
   | 'RATE_LIMITED'
   | 'FILE_TOO_LARGE'
   | 'UNSUPPORTED_FILE_TYPE'

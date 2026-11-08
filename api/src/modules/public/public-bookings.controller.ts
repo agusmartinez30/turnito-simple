@@ -25,7 +25,7 @@ export class PublicBookingsController {
 
   @Get()
   async list(@Param('slug') slug: string): Promise<PublicBookingListItem[]> {
-    const complex = await this.complex.findBySlugOrThrow(slug);
+    const complex = await this.complex.findPublicBySlugOrThrow(slug);
     return this.bookings.list(complex);
   }
 }

@@ -34,7 +34,7 @@ export class PublicComplexController {
   async getComplex(
     @Param('slug') slug: string,
   ): Promise<PublicComplexResponse> {
-    const c = await this.complex.findBySlugOrThrow(slug);
+    const c = await this.complex.findPublicBySlugOrThrow(slug);
     return {
       slug: c.slug,
       name: c.name,

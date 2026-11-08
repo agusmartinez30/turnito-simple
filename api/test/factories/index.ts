@@ -8,6 +8,8 @@ import {
   CustomerSource,
   Payment,
   PaymentMethod,
+  PaymentProof,
+  PaymentProofStatus,
   Prisma,
   Sport,
   User,
@@ -193,6 +195,27 @@ export function createPayment(options: CreatePaymentOptions): Promise<Payment> {
       ...(options.voided
         ? { voidedAt: new Date(), voidedById: options.registeredById }
         : {}),
+    },
+  });
+}
+
+export interface CreatePaymentProofOptions {
+  bookingId: string;
+  status?: PaymentProofStatus;
+  declaredAmount?: number;
+}
+
+/** Transfer proof attached to a booking (the file key is a placeholder: storage is not read). */
+export function createPaymentProof(
+  options: CreatePaymentProofOptions,
+): Promise<PaymentProof> {
+  return prisma.paymentProof.create({
+    data: {
+      bookingId: options.bookingId,
+      fileKey: `test/${options.bookingId}.png`,
+      payerName: 'Pagador Test',
+      declaredAmount: options.declaredAmount ?? 1000,
+      status: options.status ?? PaymentProofStatus.PENDING,
     },
   });
 }
