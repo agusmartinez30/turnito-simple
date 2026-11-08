@@ -26,7 +26,8 @@
     "prisma:seed": "prisma db seed",
     "prisma:studio": "prisma studio",
     "admin:promote": "ts-node scripts/set-role.ts ADMIN",
-    "admin:promote-super": "ts-node scripts/set-role.ts SUPER_ADMIN",
+    "admin:ensure-super": "ts-node scripts/ensure-super-admin.ts",
+    "admin:promote-super":"ts-node scripts/set-role.ts SUPER_ADMIN",
     "admin:demote": "ts-node scripts/set-role.ts PLAYER"
   },
   "prisma": {
