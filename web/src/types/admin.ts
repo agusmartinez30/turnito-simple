@@ -163,3 +163,21 @@ export interface AdminCustomerDetail extends AdminCustomer {
   stats: CustomerStats;
   bookings: AdminBooking[];
 }
+
+/** Complejo con sus métricas del mes, para el panel de plataforma (docs/26-super-admin.md). */
+export interface SuperAdminComplex {
+  id: string;
+  slug: string;
+  name: string;
+  createdAt: string;
+  /** `null` = activo. */
+  suspendedAt: string | null;
+  /** Mes de las métricas (YYYY-MM). */
+  month: string;
+  bookingsCount: number;
+  proofsCount: number;
+  approvedProofsCount: number;
+  /** `null` si no hay reservas en el mes. */
+  proofsPerBooking: number | null;
+  approvedProofsPerBooking: number | null;
+}
